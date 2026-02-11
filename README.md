@@ -36,3 +36,5 @@ I've generated LuaJIT bindings to go with most POSIX functions of Termux's andro
 - right now it just packages the armv7a luajit.  idk even what architecture SDL is in.  TODO would be public universal one for all archs.
 - move my customizations out of SDLActivity and into my subclass of it..
 - automated script in my lua-dist project for auto-generating the Android build files for some particular appname/classname, and auto-package the luajit contents, to auto-build Android apps.
+- add a text console output, for non-graphics scripts, pipe stdout/stderr into it, and only create the SDL surface upon SDL request.
+- builtin settings to edit the CLI args, option to disable for when using this to package specific apps.

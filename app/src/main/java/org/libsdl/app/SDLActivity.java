@@ -48,10 +48,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.FileNotFoundException;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -259,31 +255,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
      */
     protected void main() {
         String library = SDLActivity.mSingleton.getMainSharedObject();
-        String function = "SDL_main"; // the function in our JNI to be called
+        String function = SDLActivity.mSingleton.getMainFunction();
+        String[] arguments = SDLActivity.mSingleton.getArguments();
 
-        File filesDir = getContext().getFilesDir();
-        String[] arguments = new String[]{ // args to pass it
-            filesDir.getAbsolutePath()		// pass the cwd last and within SDL_main pick it out so we know where to chdir() into at the start
-        };
-        try {
-            // get args from `/data/data/app/files/luajit-args`
-            File file = new File(filesDir, "luajit-args");
-            // Use try-with-resources to ensure the BufferedReader is closed automatically
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            String line;
-            ArrayList<String> args = new ArrayList<String>();
-            // Read each line and process it as long as the line is not null (end of file)
-            while ((line = br.readLine()) != null) {
-                args.add(line);
-            }
-            args.add(arguments[0]); // add cwd last
-            arguments = args.toArray(new String[0]);
-        } catch (IOException e) {
-            // Handle potential IO exceptions (e.g., File not found, permission issues)
-            e.printStackTrace();
-        }
-
-        Log.v("SDL", "Running main function " + function + " from library " + library + " with args " + String.join(", ", arguments));
+        Log.v("SDL", "Running main function " + function + " from library " + library);
         SDLActivity.nativeRunMain(library, function, arguments);
         Log.v("SDL", "Finished main function");
     }
@@ -298,9 +273,17 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         if (libraries.length > 0) {
             library = "lib" + libraries[libraries.length - 1] + ".so";
         } else {
-            library = "lib_android_sdl_luajit.so";
+            library = "libmain.so";
         }
         return getContext().getApplicationInfo().nativeLibraryDir + "/" + library;
+    }
+
+    /**
+     * This method returns the name of the application entry point
+     * It can be overridden by derived classes.
+     */
+    protected String getMainFunction() {
+        return "SDL_main";
     }
 
     /**
@@ -314,8 +297,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     protected String[] getLibraries() {
         return new String[] {
             "SDL3",
-            "luajit",
-            "android_sdl_luajit"
+            // "SDL3_image",
+            // "SDL3_mixer",
+            // "SDL3_net",
+            // "SDL3_ttf",
+            "main"
         };
     }
 
@@ -324,6 +310,16 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
        for (String lib : getLibraries()) {
           SDL.loadLibrary(lib, this);
        }
+    }
+
+    /**
+     * This method is called by SDL before starting the native application thread.
+     * It can be overridden to provide the arguments after the application name.
+     * The default implementation returns an empty array. It never returns null.
+     * @return arguments for the native application.
+     */
+    protected String[] getArguments() {
+        return new String[0];
     }
 
     public static void initialize() {
