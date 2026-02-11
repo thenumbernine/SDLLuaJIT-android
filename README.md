@@ -26,7 +26,7 @@ If all goes well then maybe I'll merge it with `lua-dist` and make it one of the
 
 I have been copying binaries from Termux, which at least for me happens to be armv7a.
 So to get them working all I have to do is `patchelf` then change the library name, dependency names, and rpath.
-I've been setting the `rpath` to `$ORIGIN/..` which happens to resolve to the `files/` folder, and then putting them all there, because Android lets me link libraries there, not so much for other locations.
+I've been setting the `rpath` to `$ORIGIN/../files` which happens to resolve to the `files/` folder, and then putting them all there, because Android lets me link libraries there, not so much for other locations.
 
 I've generated LuaJIT bindings to go with most POSIX functions of Termux's android, it's in my `lua-ffi-bindings` project in the `Android/c` folder.
 
