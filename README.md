@@ -32,9 +32,12 @@ I've generated LuaJIT bindings to go with most POSIX functions of Termux's andro
 
 # TODO
 
-- connect the luajit build scripts to the CMakeLists.txt to have it build through Android Studio.
-- right now it just packages the armv7a luajit.  idk even what architecture SDL is in.  TODO would be public universal one for all archs.
-- move my customizations out of SDLActivity and into my subclass of it..
-- automated script in my lua-dist project for auto-generating the Android build files for some particular appname/classname, and auto-package the luajit contents, to auto-build Android apps.
+- connect the luajit build scripts to the CMakeLists.txt to have it build luajit through Android Studio instead of as a separate shell script.
+- right now it just packages the armv7a luajit.  idk even what architecture SDL is on.  TODO would be public universal one for all archs.
+- automated script in my lua-dist project for auto-generating the Android build files for some particular appname/classname, and auto-package the luajit contents, to auto-build Android apps:
+	- 1) sed all the io.github.thenumbernine.SDLActivity with whatever apk classname for the specific repo
+	- 2) patchelf the Android .so's.  This might be the hardest until I can remove rpath or find some way to link them without hardcoding them.
+	- 3) setup luajit-args to the init/boostrap file
+	- 4) copy the dist package dir over to the /data/data/app/files/
 - add a text console output, for non-graphics scripts, pipe stdout/stderr into it, and only create the SDL surface upon SDL request.
 - builtin settings to edit the CLI args, option to disable for when using this to package specific apps.
