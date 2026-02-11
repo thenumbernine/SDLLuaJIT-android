@@ -120,7 +120,7 @@ extern FILE * stderr;
 	--dir, run = 'fibonacci-modulo', 'run.lua'					-- WORKS
 	--dir, run = 'vk/tests', 'test.lua' 						-- crashes
 	--dir,run,arg = 'seashell', 'run.lua', {'usecache'}			-- WORKS but runs slow
-	--dir,run = 'numo9','run.lua'									-- needs image.ffi.zlib to be fixed
+	--dir,run = 'numo9','run.lua'								-- needs me to reduce uniforms, Windows does too, TODO use uniform blocks.
 	--dir, run = 'moldwars', 'run-cpu.rua'						-- WORKS
 	--dir, run = 'moldwars', 'run-gpu.rua'						-- WORKS
 	--dir, run = 'moldwars', 'run-cpu-mt.lua'					-- needs ffi.Android.c.semaphore
