@@ -29,3 +29,10 @@ So to get them working all I have to do is `patchelf` then change the library na
 I've been fixing the `rpath` to the app `files/` folder and then putting them all there, because Android lets me link libraries there, not so much for other locations.
 
 I've generated LuaJIT bindings to go with most POSIX functions of Termux's android, it's in my `lua-ffi-bindings` project in the `Android/c` folder.
+
+# TODO
+
+- connect the luajit build scripts to the CMakeLists.txt to have it build through Android Studio.
+- right now it just packages the armv7a luajit.  idk even what architecture SDL is in.  TODO would be public universal one for all archs.
+- move my customizations out of SDLActivity and into my subclass of it..
+- automated script in my lua-dist project for auto-generating the Android build files for some particular appname/classname, and auto-package the luajit contents, to auto-build Android apps.
