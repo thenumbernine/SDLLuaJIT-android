@@ -1,3 +1,6 @@
 [submodule "app/src/main/cpp/SDL"]
 	path = app/src/main/cpp/SDL
 	url = https://github.com/libsdl-org/SDL
+[submodule "app/src/main/cpp/luajit"]
+	path = app/src/main/cpp/luajit
+	url = https://github.com/LuaJIT/LuaJIT
