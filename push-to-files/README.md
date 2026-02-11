@@ -1,7 +1,6 @@
 pushing and pulling from the /data/data/pkgname/files/
 
-I'm rpath'ing the Termux libraries to point here cuz I can only get them to link using an absolute rpath
-(can I put env vars in it? what env var has the package files folder anyways?)
+I'm rpath'ing the Termux libraries to point to `$ORIGIN/..` 
 
 here's the libraries:
 	in image/bin/Android/arm
@@ -14,4 +13,4 @@ here's the libraries:
 	in imgui/bin/Android/arm
 		`libcimgui_sdl3.so`
 
-... and maybe `libc++_shared.so`
+... and maybe `libc++_shared.so` ... where should I save that at? here? why not?

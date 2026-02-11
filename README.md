@@ -26,7 +26,7 @@ If all goes well then maybe I'll merge it with `lua-dist` and make it one of the
 
 I have been copying binaries from Termux, which at least for me happens to be armv7a.
 So to get them working all I have to do is `patchelf` then change the library name, dependency names, and rpath.
-I've been fixing the `rpath` to the app `files/` folder and then putting them all there, because Android lets me link libraries there, not so much for other locations.
+I've been setting the `rpath` to `$ORIGIN/..` which happens to resolve to the `files/` folder, and then putting them all there, because Android lets me link libraries there, not so much for other locations.
 
 I've generated LuaJIT bindings to go with most POSIX functions of Termux's android, it's in my `lua-ffi-bindings` project in the `Android/c` folder.
 
@@ -36,7 +36,6 @@ I've generated LuaJIT bindings to go with most POSIX functions of Termux's andro
 - right now it just packages the armv7a luajit.  idk even what architecture SDL is on.  TODO would be public universal one for all archs.
 - automated script in my lua-dist project for auto-generating the Android build files for some particular appname/classname, and auto-package the luajit contents, to auto-build Android apps:
 	- 1) sed all the io.github.thenumbernine.SDLActivity with whatever apk classname for the specific repo
-	- 2) patchelf the Android .so's.  This might be the hardest until I can remove rpath or find some way to link them without hardcoding them.
 	- 3) setup luajit-args to the init/boostrap file
 	- 4) copy the dist package dir over to the /data/data/app/files/
 - add a text console output, for non-graphics scripts, pipe stdout/stderr into it, and only create the SDL surface upon SDL request.
