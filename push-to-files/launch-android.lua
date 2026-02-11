@@ -85,20 +85,22 @@ extern FILE * stderr;
 	-- 2.2) patchelf --set-rpath "\$ORIGIN/../files" libcimgui_sdl3.so
 	-- and that will force it to look in the appFilesDir for its dep libc++_shared.so
 	--
-	require 'ffi.load'.z = appFilesDir..'/libz.so'
-	require 'ffi.load'.png = appFilesDir..'/libpng.so'
-	require 'ffi.load'.jpeg = appFilesDir..'/libjpeg.so'
-	require 'ffi.load'.tiff = appFilesDir..'/libtiff.so'
-	require 'ffi.load'.openal = appFilesDir..'/libopenal.so'
-	require 'ffi.load'.cimgui_sdl3 = appFilesDir..'/libcimgui_sdl3.so'
 
-	-- can I copy from projectsDir/projectName/bin/Android/arm/libraryName to appFilesDir/ from within the SDLLuaJIT app?
-	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libz.so', appFilesDir..'/')))
-	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libpng.so', appFilesDir..'/')))
-	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libjpeg.so', appFilesDir..'/')))
-	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libtiff.so', appFilesDir..'/')))
-	assert(os.execute(('cp %q %q'):format(projectsDir..'/imgui/bin/Android/arm/libcimgui_sdl3.so', appFilesDir..'/')))
-	assert(os.execute(('cp %q %q'):format(projectsDir..'/audio/bin/Android/arm/libopenal.so', appFilesDir..'/')))
+	local function setuplib(projectName, libLoadName, libFileName)
+		assert(os.execute(('cp %q %q'):format(projectsDir..'/'..projectName..'/bin/Android/arm/'..libFileName, appFilesDir..'/')))
+		require 'ffi.load'[libLoadName] = appFilesDir..'/'..libFileName
+	end
+	setuplib('image', 'z', 'libz.so')							-- libz used by libpng
+	setuplib('image', 'png', 'libpng.so')
+	setuplib('image', 'jpeg', 'libjpeg.so')
+	setuplib('image', 'tiff', 'libtiff.so')
+	setuplib('audio', 'openal', 'libopenal.so')
+	setuplib('imgui', 'cimgui_sdl3', 'libcimgui_sdl3.so')
+	setuplib('gui', 'brotlicommon', 'libbrotlicommon.so')		-- libbrotlicommon used by libbrotlidec
+	setuplib('gui', 'brotlidec', 'libbrotlidec.so')				-- libbrotlidec used by libfreetype
+	setuplib('gui', 'bz2', 'libbz2.so')							-- libbz2 used by libfreetype
+	setuplib('gui', 'freetype', 'libfreetype.so')
+
 	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
 
 	--now ... try to run something in SDL+OpenGL
@@ -106,33 +108,36 @@ extern FILE * stderr;
 	arg = {}
 	-- [[
 	--ffi.C.chdir'sdl/tests' -- stuck on desktop-GL until I force init gl.setup to OpenGLES3...
-	--dir, run = 'glapp/tests', 'info.lua'						-- WORKS
-	--dir, run = 'glapp/tests', 'test_es.lua'					-- WORKS
-	--dir, run = 'glapp/tests', 'test_geom.lua' 				-- blank, just like desktop when using GLES3
-	--dir, run = 'glapp/tests', 'test_tex.lua' 					-- WORKS
-	dir, run = 'glapp/tests', 'test_uniformblock.lua'			-- WORKS
+	--dir,run = 'glapp/tests', 'info.lua'						-- WORKS
+	--dir,run = 'glapp/tests', 'test_es.lua'					-- WORKS
+	--dir,run = 'glapp/tests', 'test_geom.lua' 					-- blank, just like desktop when using GLES3
+	--dir,run = 'glapp/tests', 'test_tex.lua' 					-- WORKS
+	--dir,run = 'glapp/tests', 'test_uniformblock.lua'			-- WORKS
 -- TODO glapp.orbit needs multitouch for pinch-zoom (scroll equiv) and right-click (two finger tap?)
 -- TODO imgui ui probably needs bigger to be able to touch anything
-	--dir, run = 'imgui/tests', 'demo.lua'						-- WORKS
-	--dir, run = 'imgui/tests', 'console.lua'					-- WORKS, KEYBOARD TOO
-	--dir, run = 'line-integral-convolution', 'run.lua'			-- got glCheckFramebufferStatus == 0
-	--dir, run = 'rule110', 'rule110.lua'						-- WORKS
-	--dir, run = 'fibonacci-modulo', 'run.lua'					-- WORKS
-	--dir, run = 'vk/tests', 'test.lua' 						-- crashes
+	--dir,run = 'imgui/tests', 'demo.lua'						-- WORKS
+	--dir,run = 'imgui/tests', 'console.lua'					-- WORKS, KEYBOARD TOO
+	--dir,run = 'line-integral-convolution', 'run.lua'			-- got glCheckFramebufferStatus == 0
+	--dir,run = 'rule110', 'rule110.lua'						-- WORKS
+	--dir,run = 'fibonacci-modulo', 'run.lua'					-- WORKS
+	--dir,run = 'vk/tests', 'test.lua' 							-- crashes
 	--dir,run,arg = 'seashell', 'run.lua', {'usecache'}			-- WORKS but runs slow
-	--dir,run = 'numo9','run.lua'								-- needs me to reduce uniforms, Windows does too, TODO use uniform blocks.
-	--dir, run = 'moldwars', 'run-cpu.rua'						-- WORKS
-	--dir, run = 'moldwars', 'run-gpu.rua'						-- WORKS
-	--dir, run = 'moldwars', 'run-cpu-mt.lua'					-- needs ffi.Android.c.semaphore
-	--dir, run = 'moldwars', 'run-cpu-mt.rua'					-- same
+	--dir,run = 'numo9','run.lua'								-- needs me to use uniform buffers instead of uniforms, like on Windows
+	--dir,run = 'moldwars', 'run-cpu.rua'						-- WORKS
+	--dir,run = 'moldwars', 'run-gpu.rua'						-- WORKS
+	--dir,run = 'moldwars', 'run-cpu-mt.lua'					-- needs ffi.Android.c.semaphore
+	--dir,run = 'moldwars', 'run-cpu-mt.rua'					-- same
 	--dir,run = 'sand-attack','run.lua'							-- WORKS but openal doesnt make sound, and TODO make this touch-capable
 	--dir,run = 'chess-on-manifold','run.lua'					-- WORKS but it's slow (I wonder why...)
 	--dir,run = 'platonic-solids','run.lua'						-- needs to be GLES3 friendly, get rid of glPolygonMode
 	--dir,run = 'zeta2d','init.lua'								-- WORKS AND openal WORKS but needs touch controls
 	--dir,run = 'zeta3d','init.lua'
-	--dir,run = 'TacticsLua','init.lua'
 	-- pong, but numo9 works as well
 	-- kart, but numo9 works as well
+	--dir,run = 'gui/tests','test-gui.lua'						-- WORKS
+	--dir,run = 'gui/tests','test-truetype.lua'					-- WORKS
+	--dir,run = 'TacticsLua','init.lua'
+	dir,run = 'hydro-cl','run.lua'							-- needs libfreetype.so support
 	--]]
 
 	if dir or run then
