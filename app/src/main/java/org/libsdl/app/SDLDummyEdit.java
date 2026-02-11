@@ -1,4 +1,4 @@
-package io.github.thenumbernine.SDLLuaJIT;
+package org.libsdl.app;
 
 import android.content.*;
 import android.text.InputType;

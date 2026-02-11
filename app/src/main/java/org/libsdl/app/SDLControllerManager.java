@@ -1,4 +1,4 @@
-package io.github.thenumbernine.SDLLuaJIT;
+package org.libsdl.app;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -39,7 +39,7 @@ endif()
 # Chris: trying to add luajit
 # TODO how to do relative dir?
 # TODO how to do arch-specific .so? universal even?
-add_subdirectory(luajit)
+#add_subdirectory(luajit)
 set(LUAJIT_LIBRARY /home/aya/Projects/android/SDLLuaJIT/app/src/main/jniLibs/armeabi-v7a/libluajit.so)
 add_library(luajit SHARED IMPORTED)
 set_property(TARGET luajit PROPERTY IMPORTED_LOCATION ${LUAJIT_LIBRARY})
