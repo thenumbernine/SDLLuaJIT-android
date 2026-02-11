@@ -1,0 +1,11 @@
+pkgname='io.github.thenumbernine.SDLLuaJIT'
+tmpdir='/data/local/tmp'
+appdir='/data/data/'..pkgname..'/files'
+
+-- pushes single file, no spaces in name, to the /data/data/$pkgname/files/ folder
+-- takes 3 operations to move one file, because Android is stupid
+pushfile=|fn|do
+	os.exec('adb push '..fn..' '..tmpdir..'/'..fn)
+	os.exec('adb shell run-as '..pkgname..' cp '..tmpdir..'/'..fn..' '..appdir..'/'..fn)
+	os.exec('adb shell rm '..tmpdir..'/'..fn)
+end
