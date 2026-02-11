@@ -12,26 +12,29 @@ and that brings us here.
 stdout/stderr DO NOT WORK
 BECAUSE ANDROID FUCKING PIPES THEM INTO THE SHITTER BY DEFAULT
 so the first thing we have to do is fix the Google dev team's incompetence.
-NOTICE that SDLActivity sets cwd to its files folder, 
+NOTICE that SDLActivity sets cwd to its files folder,
 so cwd is `/data/data/io.github.thenumbernine.SDLLuaJIT/files` at present.
 --]]
 xpcall(function()
 	local ffi = require 'ffi'
-	
+
+	-- in Termux I've got this set to $LUA_PROJECT_PATH env var,
+	-- but in JNI, no such variables, and barely even env var access to what is there.
+	local projectsDir = '/sdcard/Documents/Projects/lua'
+	local appFilesDir = '/data/data/io.github.thenumbernine.SDLLuaJIT/files'
+
 	-- first chdir to our lua projects root
 	ffi.cdef[[
 int chdir(const char *path);
 ]]
-	local startDir = '/sdcard/Documents/Projects/lua'
+	local startDir = projectsDir
 	ffi.C.chdir(startDir)
-
-	local appFilesDir = '/data/data/io.github.thenumbernine.SDLLuaJIT/files'
 
 	-- next redirect stdout and stderr to ./out.txt
 	ffi.cdef[[
 struct FILE;
 typedef struct FILE FILE;
-FILE * freopen(const char * filename, const char * modes, FILE * stream); 
+FILE * freopen(const char * filename, const char * modes, FILE * stream);
 extern FILE * stdin;
 extern FILE * stdout;
 extern FILE * stderr;
@@ -52,6 +55,8 @@ extern FILE * stderr;
 	end
 	--]]
 
+	print'BEGIN launch-android.lua'
+
 	-- setup LUA_PATH and LUA_CPATH here
 	package.path = table.concat({
 		'./?.lua',
@@ -64,55 +69,20 @@ extern FILE * stderr;
 		startDir..'/?/init.so',
 	}, ';')
 
-	-- can we even get env cmd PWD?
-	-- no.   not without os.execute 'set'.
-	ffi.cdef[[
-char * getcwd(const char *name);
-]]
-	--print('PWD', os.getenv'PWD')		-- os.getenv returning nil...
-	--print('PWD', ffi.C.getcwd'PWD')	-- ffi.C.getenv returns NULL...
-	--os.execute'set'					-- set says PWD exists...
-	-- but nothing in 'set' pertains to io.github.thenumbernine.SDLLuaJIT
-
 	--looks like when build for Android, ffi.os==Linux
 	--hot take: it should be "Android"
 	assert(ffi.os == 'Linux')
 	ffi.os = 'Android'
-	-- armv7a has arch==arm
+	-- armv7a has ffi.arch==arm
 	print('os', ffi.os, 'arch', ffi.arch)
 
 	-- setup for libs android
-
-	--ffi.cdef[[void android_update_LD_LIBRARY_PATH(const char*);]]
-	--ffi.C.android_update_LD_LIBRARY_PATH(appFilesDir)
-	-- not in libc
-	--local libdl = ffi.load'dl'
-	--libdl.android_update_LD_LIBRARY_PATH(appFilesDir)
-	-- not in libdl either
-
-	--[=[ getenv and setenv for os and ffi.C had problems before,....
-	ffi.cdef[[
-char * getenv(const char*);
-int setenv(const char*, const char*, int);
-int putenv(const char*);
-]]
-	local libPath = ffi.C.getenv'LD_LIBRARY_PATH'
-	--print('LD_LIBRARY_PATH', libPath ~= nil and ffi.string(libPath) or '(null)')	-- nil
-	local function setenv(k,v) ffi.C.setenv(k,v,1) end
-	--local function setenv(k,v) ffi.C.putenv(k..'='..v) end
-	setenv('PATH', appFilesDir)
-	setenv('LD_LIBRARY_PATH', appFilesDir)
-	setenv('SDP_LIBRARY_PATH', appFilesDir)
-	setenv('ASDP_LIBRARY_PATH', appFilesDir)
-	setenv('DYLD_LIBRARY_PATH', appFilesDir)
-	--]=]
 
 	-- Android only lets me ffi.load if the .so is in appFilesDir
 	--
 	-- things to do to get libcimgui_sdl3.so to work:
 	-- 1) upon build, `patchelf --replace-needed libSDL3.so.0 libSDL3.so libcimgui_sdl3.so` to get around Termux's symlinks to libSDL3.so.0 vs the SDLActivity's libSDL3.so
-	-- 2.1) patchelf --remove-rpath libcimgui_sdl3.so
-	-- 2.2) patchelf --add-rpath /data/data/io.github.thenumbernine.SDLLuaJIT/files libcimgui_sdl3.so
+	-- 2.2) patchelf --set-rpath "\$ORIGIN/../files" libcimgui_sdl3.so
 	-- and that will force it to look in the appFilesDir for its dep libc++_shared.so
 	--
 	require 'ffi.load'.z = appFilesDir..'/libz.so'
@@ -122,18 +92,27 @@ int putenv(const char*);
 	require 'ffi.load'.openal = appFilesDir..'/libopenal.so'
 	require 'ffi.load'.cimgui_sdl3 = appFilesDir..'/libcimgui_sdl3.so'
 
+	-- can I copy from projectsDir/projectName/bin/Android/arm/libraryName to appFilesDir/ from within the SDLLuaJIT app?
+	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libz.so', appFilesDir..'/')))
+	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libpng.so', appFilesDir..'/')))
+	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libjpeg.so', appFilesDir..'/')))
+	assert(os.execute(('cp %q %q'):format(projectsDir..'/image/bin/Android/arm/libtiff.so', appFilesDir..'/')))
+	assert(os.execute(('cp %q %q'):format(projectsDir..'/imgui/bin/Android/arm/libcimgui_sdl3.so', appFilesDir..'/')))
+	assert(os.execute(('cp %q %q'):format(projectsDir..'/audio/bin/Android/arm/libopenal.so', appFilesDir..'/')))
+	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
+
 	--now ... try to run something in SDL+OpenGL
-	local dir, run 
+	local dir, run
 	arg = {}
-	-- [[ 
-	--ffi.C.chdir'sdl/tests' -- stuck on desktop-GL until I force init gl.setup to OpenGLES3... 
+	-- [[
+	--ffi.C.chdir'sdl/tests' -- stuck on desktop-GL until I force init gl.setup to OpenGLES3...
 	--dir, run = 'glapp/tests', 'info.lua'						-- WORKS
 	--dir, run = 'glapp/tests', 'test_es.lua'					-- WORKS
 	--dir, run = 'glapp/tests', 'test_geom.lua' 				-- blank, just like desktop when using GLES3
-	--dir, run = 'glapp/tests', 'test_tex.lua' 					-- WORKS 
-	--dir, run = 'glapp/tests', 'test_uniformblock.lua'			-- WORKS
+	--dir, run = 'glapp/tests', 'test_tex.lua' 					-- WORKS
+	dir, run = 'glapp/tests', 'test_uniformblock.lua'			-- WORKS
 -- TODO glapp.orbit needs multitouch for pinch-zoom (scroll equiv) and right-click (two finger tap?)
--- TODO imgui ui probably needs bigger to be able to touch anything	
+-- TODO imgui ui probably needs bigger to be able to touch anything
 	--dir, run = 'imgui/tests', 'demo.lua'						-- WORKS
 	--dir, run = 'imgui/tests', 'console.lua'					-- WORKS, KEYBOARD TOO
 	--dir, run = 'line-integral-convolution', 'run.lua'			-- got glCheckFramebufferStatus == 0
@@ -141,7 +120,7 @@ int putenv(const char*);
 	--dir, run = 'fibonacci-modulo', 'run.lua'					-- WORKS
 	--dir, run = 'vk/tests', 'test.lua' 						-- crashes
 	--dir,run,arg = 'seashell', 'run.lua', {'usecache'}			-- WORKS but runs slow
-	dir,run = 'numo9','run.lua'									-- needs image.ffi.zlib to be fixed
+	--dir,run = 'numo9','run.lua'									-- needs image.ffi.zlib to be fixed
 	--dir, run = 'moldwars', 'run-cpu.rua'						-- WORKS
 	--dir, run = 'moldwars', 'run-gpu.rua'						-- WORKS
 	--dir, run = 'moldwars', 'run-cpu-mt.lua'					-- needs ffi.Android.c.semaphore
@@ -172,5 +151,6 @@ end, function(err)
 end)
 
 -- need this or else we will lose output.
+print'DONE launch-android.lua'
 io.stdout:flush()
 io.stderr:flush()
