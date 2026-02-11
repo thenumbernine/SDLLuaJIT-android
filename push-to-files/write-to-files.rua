@@ -1,0 +1,4 @@
+#!/usr/bin/env rua
+require 'config'
+local fn = assert(..., 'expected file')
+pushfile(fn)
