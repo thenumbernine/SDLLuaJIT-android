@@ -1,0 +1,3 @@
+[submodule "app/src/main/cpp/SDL"]
+	path = app/src/main/cpp/SDL
+	url = https://github.com/libsdl-org/SDL
