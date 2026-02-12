@@ -1,7 +1,9 @@
 pkgname='io.github.thenumbernine.SDLLuaJIT'
 tmpdir='/data/local/tmp'
 appdir='/data/data/'..pkgname..'/files'
+-- phone project dir:
 projectdir='/sdcard/Documents/Projects/lua'
+-- local project dir is os.getenv'LUA_PROJECT_PATH'
 
 -- pushes single file, no spaces in name, to the /data/data/$pkgname/files/ folder
 -- takes 3 operations to move one file, because Android is stupid
