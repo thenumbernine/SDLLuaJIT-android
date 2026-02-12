@@ -1,6 +1,7 @@
 pkgname='io.github.thenumbernine.SDLLuaJIT'
 tmpdir='/data/local/tmp'
 appdir='/data/data/'..pkgname..'/files'
+projectdir='/sdcard/Documents/Projects/lua'
 
 -- pushes single file, no spaces in name, to the /data/data/$pkgname/files/ folder
 -- takes 3 operations to move one file, because Android is stupid
@@ -9,3 +10,11 @@ pushfile=|fn|do
 	os.exec('adb shell run-as '..pkgname..' cp '..tmpdir..'/'..fn..' '..appdir..'/'..fn)
 	os.exec('adb shell rm '..tmpdir..'/'..fn)
 end
+
+-- libs[projectName][libLoadName] such that lua/${projectName}/bin/Android/arm/lib${libLoadName}.so is where to find it
+libs = {
+	image = {'z','png','jpeg','tiff'},
+	audio = {'openal'},
+	imgui = {'cimgui_sdl3'},
+	gui = {'brotlicommon', 'brotlidec', 'bz2', 'freetype'},
+}
