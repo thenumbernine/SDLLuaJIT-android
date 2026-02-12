@@ -82,7 +82,7 @@ extern FILE * stderr;
 	assert(ffi.os == 'Linux')
 	ffi.os = 'Android'
 	-- armv7a has ffi.arch==arm
-	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit)
+	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
 
 	-- setup for libs android
 	-- Android only lets me ffi.load if the .so is in appFilesDir
@@ -104,13 +104,23 @@ extern FILE * stderr;
 	setuplib('gui', 'brotlidec', 'libbrotlidec.so')				-- libbrotlidec used by libfreetype
 	setuplib('gui', 'bz2', 'libbz2.so')							-- libbz2 used by libfreetype
 	setuplib('gui', 'freetype', 'libfreetype.so')
-	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
 
---os.execute('cat '..appFilesDir..'/luajit-args')
---local f = io.open(appFilesDir..'/luajit-args','w')
---f:write(projectsDir..'/android-launch.lua\n')
---f:close()
-do return end
+	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
+	-- how come libcimgui_sdl3.so can find libc++_shared.so no problem, but libopenal.so can't?
+	-- TODO this can be packaged in your app....
+	assert(os.execute(('cp %q %q'):format('libc++_shared.so', appFilesDir..'/')))
+
+	-- vulkan
+	os.execute('rm '..appFilesDir..'/libvulkan.so')
+	assert(os.execute('ln -s /system/lib/libvulkan.so '..appFilesDir..'/libvulkan.so'))
+	require 'ffi.load'.vulkan = appFilesDir..'/libvulkan.so'
+
+	--os.execute('cat '..appFilesDir..'/luajit-args')
+	--local f = io.open(appFilesDir..'/luajit-args','w')
+	--f:write(projectsDir..'/android-launch.lua\n')
+	--f:close()
+	--do return end
+
 	--now ... try to run something in SDL+OpenGL
 	local dir, run
 	arg = {}
@@ -118,30 +128,30 @@ do return end
 	--dir,run='sdl/tests'
 	--dir,run='glapp/tests','info.lua'						-- WORKS
 	--dir,run='glapp/tests','test_es.lua'					-- WORKS
-	--dir,run='glapp/tests','test_geom.lua' 					-- blank, just like desktop when using GLES3
+	--dir,run='glapp/tests','test_geom.lua' 				-- blank, just like desktop when using GLES3
 	--dir,run='glapp/tests','test_tex.lua' 					-- WORKS
 	--dir,run='glapp/tests','test_uniformblock.lua'			-- WORKS
 -- TODO glapp.orbit needs multitouch for pinch-zoom (scroll equiv) and right-click (two finger tap?)
 -- TODO imgui ui probably needs bigger to be able to touch anything
 	--dir,run='imgui/tests','demo.lua'						-- WORKS
 	--dir,run='imgui/tests','console.lua'					-- WORKS, KEYBOARD TOO
-	--dir,run='line-integral-convolution','run.lua'			-- got glCheckFramebufferStatus == 0
+	--dir,run='line-integral-convolution','run.lua'			-- got glCheckFramebufferStatus==0
 	--dir,run='rule110','rule110.lua'						-- WORKS
 	--dir,run='fibonacci-modulo','run.lua'					-- WORKS
-	--dir,run='vk/tests','test.lua' 							-- crashes
-	--dir,run,arg='seashell','run.lua', {'usecache'}			-- WORKS but runs slow
-	dir,run='audio/test','test.lua'								-- crashes
-	--dir,run='sdl/tests','audio.lua'							-- WORKS
-	--dir,run='numo9','run.lua',{'-noaudio'}								-- needs me to use uniform buffers instead of uniforms, like on Windows
-	--dir,run='lua/tests','test.lua'							-- WORKS
+	dir,run='vk/tests','test.lua' 							-- queries physical devices, doesn't get much further.
+	--dir,run,arg='seashell','run.lua', {'usecache'}		-- WORKS but runs slow
+	--dir,run='audio/test','test.lua'						-- crashes due to libopenal.so missing libc++_shared.so ... cimgui can find c++_shared but openal can't ... cimgui has no .soname elf entry but openal does ... hmm.
+	--dir,run='sdl/tests','audio.lua'						-- WORKS
+	--dir,run='numo9','run.lua',{'-noaudio'}				-- needs me to use uniform buffers instead of uniforms, like on Windows
+	--dir,run='lua/tests','test.lua'						-- WORKS
 	--dir,run='moldwars','run-cpu.rua'						-- WORKS
 	--dir,run='moldwars','run-gpu.rua'						-- WORKS
 	--dir,run='moldwars','run-cpu-mt.lua'					-- WORKS
 	--dir,run='moldwars','run-cpu-mt.rua'					-- says it cant find langfix from within the thread...
 	--dir,run='sand-attack','run.lua'							-- crashing again used to WORKS but openal doesnt make sound, and TODO make this touch-capable
 	--dir,run='chess-on-manifold','run.lua'					-- WORKS but it's slow (I wonder why...)
-	--dir,run='platonic-solids','run.lua'						-- needs to be GLES3 friendly, get rid of glPolygonMode
-	--dir,run='zeta2d','init.lua',{'audio=null'}								-- used to work but is crashing now ... WORKS AND openal WORKS but needs touch controls
+	--dir,run='platonic-solids','run.lua'						-- WORKS but runs horribly slow, got a glCheckFramebufferStatus==0
+	--dir,run='zeta2d','init.lua',{'audio=null'}			-- used to work but is crashing now ... WORKS AND openal WORKS but needs touch controls
 	--dir,run='zeta3d','init.lua'
 	-- pong, but numo9 works as well
 	-- kart, but numo9 works as well
@@ -149,6 +159,9 @@ do return end
 	--dir,run='gui/tests','test-truetype.lua'					-- WORKS
 	--dir,run='TacticsLua','init.lua'
 	--dir,run,arg='hydro-cl','run.lua',{'float','verbose'}		--
+	--dir,run='solarsystem','graph.lua'								-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
+	--dir,run='solarsystem','solarsytem.lua'								-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
+	--dir,run='earthquake-shear-lines','run.rua'					-- will break because it needs wget to download
 	--]]
 
 	if dir or run then
