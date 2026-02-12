@@ -12,7 +12,7 @@ make clean
 # Chris: the first batch are env vars I usu modify directly in Makefile.  Here's hoping I can in fact override them with this.  I don't want to fork luajit. 
 # Chris: would be nice to override LJ_OS_NAME=Android ...
 make \
-	Q=\
+	Q= \
 	E="@:" \
 	XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT \
 	TARGET_SONAME=libluajit.so \
@@ -22,11 +22,11 @@ make \
 	\
 	HOST_CC="gcc -m32" \
 	CROSS=$NDKCROSS \
-    STATIC_CC=$NDKCC \
+	STATIC_CC=$NDKCC \
 	DYNAMIC_CC="$NDKCC -fPIC" \
-    TARGET_LD=$NDKCC \
+	TARGET_LD=$NDKCC \
 	TARGET_AR="$NDKBIN/llvm-ar rcus" \
-    TARGET_STRIP=$NDKBIN/llvm-strip
+	TARGET_STRIP=$NDKBIN/llvm-strip
 
 DESTDIR=../../../jniLibs/armeabi-v7a/
 mkdir -p $DESTDIR
