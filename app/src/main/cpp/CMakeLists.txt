@@ -37,23 +37,16 @@ Possible ways to fix this:
 endif()
 
 # Chris: trying to add luajit
-# TODO how to do relative dir?
-# TODO how to do arch-specific .so? universal even?
 #add_subdirectory(luajit)
-set(LUAJIT_LIBRARY /home/aya/Projects/android/SDLLuaJIT/app/src/main/jniLibs/armeabi-v7a/libluajit.so)
+set(LUAJIT_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libluajit.so)
 add_library(luajit SHARED IMPORTED)
 set_property(TARGET luajit PROPERTY IMPORTED_LOCATION ${LUAJIT_LIBRARY})
 
-include_directories(
-    PRIVATE
-    luajit/src
-)
+# putting luajit per-arch include here for now
+include_directories(PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/${ANDROID_ABI})
 
 # Chris: trying to add include dir of SDL...
-include_directories(
-    PRIVATE
-    SDL/include
-)
+include_directories(PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/SDL/include)
 
 
 # Creates and names a library, sets it as either STATIC

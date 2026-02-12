@@ -25,8 +25,22 @@ make \
 	TARGET_AR="$NDKBIN/llvm-ar rcus" \
 	TARGET_STRIP="$NDKBIN/llvm-strip"
 
-DESTDIR=../../../jniLibs/x86_64/
-mkdir -p $DESTDIR
-cp libluajit.so $DESTDIR
-cp libluajit.a $DESTDIR
-cp luajit $DESTDIR
+ANDROID_ABI=x86_64
+
+# copy lib
+DESTLIBDIR=../../../jniLibs/$ANDROID_ABI/
+mkdir -p $DESTLIBDIR
+cp libluajit.so $DESTLIBDIR
+cp libluajit.a $DESTLIBDIR
+cp luajit $DESTLIBDIR
+
+# copy headers
+DESTINCDIR=../../include/$ANDROID_ABI/
+mkdir -p $DESTINCDIR
+cp lauxlib.h $DESTINCDIR
+cp luaconf.h $DESTINCDIR
+cp lua.h $DESTINCDIR
+cp lua.hpp $DESTINCDIR
+cp luajit.h $DESTINCDIR
+cp lualib.h $DESTINCDIR
+cp lj_arch.h $DESTINCDIR
