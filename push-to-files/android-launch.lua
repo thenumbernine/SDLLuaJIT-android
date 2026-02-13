@@ -144,13 +144,14 @@ extern FILE * stderr;
 	local dir, run
 	arg = {}
 	-- [[
-	--dir,run='sdl/tests'
-	--dir,run='glapp/tests','info.lua'						-- WORKS
-	--dir,run='glapp/tests','test_es.lua'					-- WORKS
-	--dir,run='glapp/tests','test_geom.lua' 				-- blank, just like desktop when using GLES3
-	--dir,run='glapp/tests','test_tex.lua' 					-- WORKS
-	--dir,run='glapp/tests','test_uniformblock.lua'			-- WORKS
--- TODO glapp.orbit needs multitouch for pinch-zoom (scroll equiv) and right-click (two finger tap?)
+	--dir,run='sdl/tests','app.lua'
+	--dir,run='sdl/tests','minimal.lua'
+	--dir,run='sdl/tests','events.lua'
+	--dir,run='gl/tests','info.lua'						-- WORKS
+	--dir,run='gl/tests','test_es.lua'					-- WORKS
+	--dir,run='gl/tests','test_geom.lua' 				-- blank, just like desktop when using GLES3
+	--dir,run='gl/tests','test_tex.lua' 					-- WORKS
+	--dir,run='gl/tests','test_uniformblock.lua'			-- WORKS
 -- TODO imgui ui probably needs bigger to be able to touch anything
 	--dir,run='imgui/tests','demo.lua'						-- WORKS
 	--dir,run='imgui/tests','console.lua'					-- WORKS, KEYBOARD TOO
@@ -161,7 +162,7 @@ extern FILE * stderr;
 	--dir,run,arg='seashell','run.lua', {'usecache'}		-- WORKS but runs slow
 	--dir,run='audio/test','test.lua'						-- no errrors, and I don't hear anything...
 	--dir,run='sdl/tests','audio.lua'						-- WORKS
-	--dir,run='numo9','run.lua',{'-noaudio'}				-- needs me to use uniform buffers instead of uniforms, like on Windows
+	--dir,run='numo9','run.lua',{'-noaudio'}				-- crash when trying to reset/write the ram's init light data...
 	--dir,run='lua/tests','test.lua'						-- WORKS
 	--dir,run='moldwars','run-cpu.rua'						-- WORKS
 	--dir,run='moldwars','run-gpu.rua'						-- WORKS
@@ -169,7 +170,7 @@ extern FILE * stderr;
 	--dir,run='moldwars','run-cpu-mt.rua'					-- says it cant find langfix from within the thread...
 	dir,run='sand-attack','run.lua'							-- WORKS - sound, touch, everything
 	--dir,run='chess-on-manifold','run.lua'					-- WORKS but it's slow (I wonder why...)
-	--dir,run='platonic-solids','run.lua'					-- WORKS but runs horribly slow, got a glCheckFramebufferStatus==0
+	--dir,run='chinese-checkers-on-sphere','run.lua'		-- WORKS but runs horribly slow, got a glCheckFramebufferStatus==0
 	--dir,run='zeta2d','init.lua' 							-- WORKS AND SOUND, but needs touch controls
 	--dir,run='zeta3d','init.lua'
 	-- pong, but numo9 works as well
@@ -190,6 +191,9 @@ extern FILE * stderr;
 			require 'langfix'
 		end
 		chdir(assert(dir))
+
+-- ext.debug
+require 'ext.debug' 'source:match[[numo9*]]'
 
 --debug trace
 --debug.sethook(function() print(debug.traceback()) end, 'l')
