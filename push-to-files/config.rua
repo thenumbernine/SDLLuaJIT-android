@@ -16,7 +16,7 @@ end
 -- libs[projectName][libLoadName] such that lua/${projectName}/bin/Android/arm/lib${libLoadName}.so is where to find it
 libs = {
 	image = {'z','png','jpeg','tiff'},
-	audio = {'openal'},
+	audio = {'openal', 'ogg', 'vorbis', 'vorbisfile', 'vorbisenc'},
 	imgui = {'cimgui_sdl3'},
 	gui = {'brotlicommon', 'brotlidec', 'bz2', 'freetype'},
 }
