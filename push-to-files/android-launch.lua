@@ -28,8 +28,10 @@ xpcall(function()
 	-- in Termux I've got this set to $LUA_PROJECT_PATH env var,
 	-- but in JNI, no such variables, and barely even env var access to what is there.
 	local projectsDir = '/sdcard/Documents/Projects/lua'
-	local appFilesDir = '/data/data/io.github.thenumbernine.SDLLuaJIT/files'
 	local startDir = projectsDir
+	local appDir = '/data/data/io.github.thenumbernine.SDLLuaJIT'
+	local appFilesDir = appDir..'/files'
+	local libDir = appFilesDir..'/lib'
 
 	chdir(startDir)
 
@@ -85,35 +87,52 @@ extern FILE * stderr;
 	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
 
 	-- setup for libs android
-	-- Android only lets me ffi.load if the .so is in appFilesDir
+	-- Android only lets me ffi.load if the .so is in appDir
 	-- things to do to get libcimgui_sdl3.so to work:
 	-- 1) upon build, `patchelf --replace-needed libSDL3.so.0 libSDL3.so libcimgui_sdl3.so` to get around Termux's symlinks to libSDL3.so.0 vs the SDLActivity's libSDL3.so
-	-- 2.2) patchelf --set-rpath "\$ORIGIN/../files" libcimgui_sdl3.so
-	-- and that will force it to look in the appFilesDir for its dep libc++_shared.so
-	local function setuplib(projectName, libLoadName, libFileName)
-		assert(os.execute(('cp %q %q'):format(projectsDir..'/'..projectName..'/bin/Android/arm/'..libFileName, appFilesDir..'/')))
-		require 'ffi.load'[libLoadName] = appFilesDir..'/'..libFileName
+	-- 2.2) patchelf --set-rpath "\$ORIGIN" libcimgui_sdl3.so
+	-- and that will force it to look in the appDir for its dep libc++_shared.so
+	os.execute('mkdir -p '..libDir)
+	local function setuplib(projectName, libLoadName)
+		local libFileName = 'lib'..libLoadName..'.so'
+		assert(os.execute(('cp %q %q'):format(
+			projectsDir..'/'..projectName..'/bin/Android/arm/'..libFileName,
+			libDir..'/')
+	))
+		require 'ffi.load'[libLoadName] = libDir..'/'..libFileName
 	end
-	setuplib('image', 'z', 'libz.so')							-- libz used by libpng
-	setuplib('image', 'png', 'libpng.so')
-	setuplib('image', 'jpeg', 'libjpeg.so')
-	setuplib('image', 'tiff', 'libtiff.so')
-	setuplib('audio', 'openal', 'libopenal.so')
-	setuplib('imgui', 'cimgui_sdl3', 'libcimgui_sdl3.so')
-	setuplib('gui', 'brotlicommon', 'libbrotlicommon.so')		-- libbrotlicommon used by libbrotlidec
-	setuplib('gui', 'brotlidec', 'libbrotlidec.so')				-- libbrotlidec used by libfreetype
-	setuplib('gui', 'bz2', 'libbz2.so')							-- libbz2 used by libfreetype
-	setuplib('gui', 'freetype', 'libfreetype.so')
+
+	setuplib('audio', 'ogg')
+	setuplib('audio', 'openal')
+	setuplib('audio', 'vorbis')
+	setuplib('audio', 'vorbisenc')	-- needs vorbis
+	setuplib('audio', 'vorbisfile')	-- needs vorbis
+
+	setuplib('gui', 'brotlicommon')		-- libbrotlicommon used by libbrotlidec
+	setuplib('gui', 'brotlidec')				-- libbrotlidec used by libfreetype
+	setuplib('gui', 'bz2')							-- libbz2 used by libfreetype
+	setuplib('gui', 'freetype')
+
+	setuplib('image', 'z')							-- libz used by libpng
+	setuplib('image', 'png')
+	setuplib('image', 'jpeg')
+	setuplib('image', 'tiff')
+
+	setuplib('imgui', 'cimgui_sdl3')
 
 	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
 	-- how come libcimgui_sdl3.so can find libc++_shared.so no problem, but libopenal.so can't?
 	-- TODO this can be packaged in your app....
-	assert(os.execute(('cp %q %q'):format('libc++_shared.so', appFilesDir..'/')))
+	assert(os.execute(('cp %q %q'):format(
+		'libc++_shared.so',
+		libDir..'/')
+	))
+	-- TODO there's also a libc++_shared.so in /system/lib, we can symlink there too...
 
 	-- vulkan
-	os.execute('rm '..appFilesDir..'/libvulkan.so')
-	assert(os.execute('ln -s /system/lib/libvulkan.so '..appFilesDir..'/libvulkan.so'))
-	require 'ffi.load'.vulkan = appFilesDir..'/libvulkan.so'
+	os.execute('rm '..libDir..'/libvulkan.so')
+	assert(os.execute('ln -s /system/lib/libvulkan.so '..libDir..'/libvulkan.so'))
+	require 'ffi.load'.vulkan = libDir..'/libvulkan.so'
 
 	--os.execute('cat '..appFilesDir..'/luajit-args')
 	--local f = io.open(appFilesDir..'/luajit-args','w')
@@ -138,9 +157,9 @@ extern FILE * stderr;
 	--dir,run='line-integral-convolution','run.lua'			-- got glCheckFramebufferStatus==0
 	--dir,run='rule110','rule110.lua'						-- WORKS
 	--dir,run='fibonacci-modulo','run.lua'					-- WORKS
-	dir,run='vk/tests','test.lua' 							-- queries physical devices, doesn't get much further.
+	--dir,run='vk/tests','test.lua' 						-- queries physical devices, finds the one with the queue graphics bit, crashes when trying to find the one with surface support ...
 	--dir,run,arg='seashell','run.lua', {'usecache'}		-- WORKS but runs slow
-	--dir,run='audio/test','test.lua'						-- crashes due to libopenal.so missing libc++_shared.so ... cimgui can find c++_shared but openal can't ... cimgui has no .soname elf entry but openal does ... hmm.
+	--dir,run='audio/test','test.lua'						-- no errrors, and I don't hear anything...
 	--dir,run='sdl/tests','audio.lua'						-- WORKS
 	--dir,run='numo9','run.lua',{'-noaudio'}				-- needs me to use uniform buffers instead of uniforms, like on Windows
 	--dir,run='lua/tests','test.lua'						-- WORKS
@@ -148,10 +167,10 @@ extern FILE * stderr;
 	--dir,run='moldwars','run-gpu.rua'						-- WORKS
 	--dir,run='moldwars','run-cpu-mt.lua'					-- WORKS
 	--dir,run='moldwars','run-cpu-mt.rua'					-- says it cant find langfix from within the thread...
-	--dir,run='sand-attack','run.lua'							-- crashing again used to WORKS but openal doesnt make sound, and TODO make this touch-capable
+	dir,run='sand-attack','run.lua'							-- WORKS - sound, touch, everything
 	--dir,run='chess-on-manifold','run.lua'					-- WORKS but it's slow (I wonder why...)
-	--dir,run='platonic-solids','run.lua'						-- WORKS but runs horribly slow, got a glCheckFramebufferStatus==0
-	--dir,run='zeta2d','init.lua',{'audio=null'}			-- used to work but is crashing now ... WORKS AND openal WORKS but needs touch controls
+	--dir,run='platonic-solids','run.lua'					-- WORKS but runs horribly slow, got a glCheckFramebufferStatus==0
+	--dir,run='zeta2d','init.lua' 							-- WORKS AND SOUND, but needs touch controls
 	--dir,run='zeta3d','init.lua'
 	-- pong, but numo9 works as well
 	-- kart, but numo9 works as well
@@ -159,9 +178,9 @@ extern FILE * stderr;
 	--dir,run='gui/tests','test-truetype.lua'					-- WORKS
 	--dir,run='TacticsLua','init.lua'
 	--dir,run,arg='hydro-cl','run.lua',{'float','verbose'}		--
-	--dir,run='solarsystem','graph.lua'								-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
-	--dir,run='solarsystem','solarsytem.lua'								-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
-	--dir,run='earthquake-shear-lines','run.rua'					-- will break because it needs wget to download
+	--dir,run='solarsystem','graph.lua'							-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
+	--dir,run='solarsystem','solarsytem.lua'					-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
+	--dir,run='earthquake-shear-lines','run.rua'				-- will break because it needs wget to download
 	--]]
 
 	if dir or run then
