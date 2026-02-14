@@ -147,9 +147,9 @@ extern FILE * stderr;
 	--dir,run='sdl/tests','app.lua'
 	--dir,run='sdl/tests','minimal.lua'
 	--dir,run='sdl/tests','events.lua'
-	--dir,run='gl/tests','info.lua'						-- WORKS
-	--dir,run='gl/tests','test_es.lua'					-- WORKS
-	--dir,run='gl/tests','test_geom.lua' 				-- blank, just like desktop when using GLES3
+	--dir,run='gl/tests','info.lua'							-- WORKS
+	--dir,run='gl/tests','test_es.lua'						-- WORKS
+	--dir,run,arg='gl/tests','test_geom.lua',{'maxTess=7'} 	-- WORKS.  auto detect maxTess would be nice tho...
 	--dir,run='gl/tests','test_tex.lua' 					-- WORKS
 	--dir,run='gl/tests','test_uniformblock.lua'			-- WORKS
 -- TODO imgui ui probably needs bigger to be able to touch anything
@@ -158,7 +158,7 @@ extern FILE * stderr;
 	--dir,run='line-integral-convolution','run.lua'			-- got glCheckFramebufferStatus==0
 	--dir,run='rule110','rule110.lua'						-- WORKS
 	--dir,run='fibonacci-modulo','run.lua'					-- WORKS
-	--dir,run='vk/tests','test.lua' 						-- queries physical devices, finds the one with the queue graphics bit, crashes when trying to find the one with surface support ...
+	--dir,run,arg='vk/tests','test.lua',{'dontRequireSamplerAnisotropy'} -- WORKS
 	--dir,run,arg='seashell','run.lua', {'usecache'}		-- WORKS but runs slow
 	--dir,run='audio/test','test.lua'						-- no errrors, and I don't hear anything...
 	--dir,run='sdl/tests','audio.lua'						-- WORKS
@@ -168,20 +168,27 @@ extern FILE * stderr;
 	--dir,run='moldwars','run-gpu.rua'						-- WORKS
 	--dir,run='moldwars','run-cpu-mt.lua'					-- WORKS
 	--dir,run='moldwars','run-cpu-mt.rua'					-- says it cant find langfix from within the thread...
-	dir,run='sand-attack','run.lua'							-- WORKS - sound, touch, everything
+	--dir,run='sand-attack','run.lua'						-- WORKS - sound, touch, everything
 	--dir,run='chess-on-manifold','run.lua'					-- WORKS but it's slow (I wonder why...)
 	--dir,run='chinese-checkers-on-sphere','run.lua'		-- WORKS but runs horribly slow, got a glCheckFramebufferStatus==0
 	--dir,run='zeta2d','init.lua' 							-- WORKS AND SOUND, but needs touch controls
-	--dir,run='zeta3d','init.lua'
+	--dir,run='zeta3d','init.lua'							--  TODO convert to GL3 plz
 	-- pong, but numo9 works as well
 	-- kart, but numo9 works as well
 	--dir,run='gui/tests','test-gui.lua'						-- WORKS
 	--dir,run='gui/tests','test-truetype.lua'					-- WORKS
-	--dir,run='TacticsLua','init.lua'
-	--dir,run,arg='hydro-cl','run.lua',{'float','verbose'}		--
-	--dir,run='solarsystem','graph.lua'							-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
-	--dir,run='solarsystem','solarsytem.lua'					-- needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
-	--dir,run='earthquake-shear-lines','run.rua'				-- will break because it needs wget to download
+	--dir,run='TacticsLua','init.lua'							-- needs ff6 rom
+	--dir,run,arg='hydro-cl','run.lua',{'float','verbose'}		-- does CL work?
+	--dir,run='solarsystem','graph.lua'							--  needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
+	--dir,run='solarsystem','solarsytem.lua'					--  needs eph data which is big ... but you could use the subset in earthquake-shear-lines...
+	--dir,run='earthquake-shear-lines','run.rua'				--  will break because it needs wget to download
+	--dir,run='nbody-gpu/glsl-version','run.lua'				--  TOO SLOW
+	--dir,run='Topple','topple-glsl.lua'						-- WORKS
+	--dir,run='surface-from-connection','run.lua'				--  wants gnuplot installed
+	--dir,run='gravitational-waves','run.lua'					-- WORKS
+	--dir,run='pong','pong.lua'									-- WORKS
+	--dir,run='volume-renderer','test-mandel-julia.lua'			-- WORKS
+	--dir,run='dungeons-n-munchers','run.lua'						--  TODO update to gl3
 	--]]
 
 	if dir or run then
@@ -192,10 +199,10 @@ extern FILE * stderr;
 		end
 		chdir(assert(dir))
 
--- ext.debug
-require 'ext.debug' 'source:match[[numo9*]]'
-
---debug trace
+-- debugging options:
+--require 'gl.debug' -- doesn't work with GLES 33.0, works with GLES 3.2
+--require 'vk.debug' -- doesn't work on android at the moment, i'm sure there is a way cuz Termux has a package for it
+--require 'ext.debug'('source:match"/'..dir:match'^[^/]*'..'/"')	-- ext.debug
 --debug.sethook(function() print(debug.traceback()) end, 'l')
 
 		assert(loadfile(assert(run)))(table.unpack(arg))
