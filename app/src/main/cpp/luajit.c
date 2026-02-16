@@ -589,17 +589,9 @@ JNIEXPORT int SDL_main(
     int argc,
     char** argv
 ) {
-    // me wedging in a cwd since I don't know how to do it from Java and I don't want to mess with whatever SDL is doing with the args...
+    // make sure I am getting my arguments correctly
     {
-        char const *wd = NULL;
-        if (argc > 0) {
-            wd = argv[argc - 1];
-            if (wd) chdir(wd);
-            --argc;
-        }
-
         __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT");
-        __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT wd %s", wd ? wd : "(null)");
         __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT argc %d", argc);
         for (int i = 0; i < argc; ++i) {
             __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT argv[%d]: %s", i, argv[i] ? argv[i] : "(null)");
