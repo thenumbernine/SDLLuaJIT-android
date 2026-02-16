@@ -29,8 +29,8 @@ xpcall(function()
 	-- but in JNI, no such variables, and barely even env var access to what is there.
 	local projectsDir = '/sdcard/Documents/Projects/lua'
 	local startDir = projectsDir
-	local appDir = '/data/data/io.github.thenumbernine.SDLLuaJIT'
-	local appFilesDir = appDir..'/files'
+	local appFilesDir = os.getenv'APP_FILES_DIR'
+	--local appFilesDir = '/data/data/io.github.thenumbernine.SDLLuaJIT/files'
 	local libDir = appFilesDir..'/lib'
 
 	chdir(startDir)
@@ -86,19 +86,35 @@ extern FILE * stderr;
 	-- armv7a has ffi.arch==arm
 	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
 
+	local function exec(cmd)
+		print('>'..cmd)
+		print(os.execute(cmd))
+	end
+
+
+
+	-- these are set upon app init:
+	print('PACKAGE_NAME', os.getenv'PACKAGE_NAME')
+	print('APP_FILES_DIR', os.getenv'APP_FILES_DIR')
+	print('APP_RES_DIR', os.getenv'APP_RES_DIR')
+	print('APP_CACHE_DIR', os.getenv'APP_CACHE_DIR')
+	exec'set'
+
+
+
 	-- setup for libs android
 	-- Android only lets me ffi.load if the .so is in appDir
 	-- things to do to get libcimgui_sdl3.so to work:
 	-- 1) upon build, `patchelf --replace-needed libSDL3.so.0 libSDL3.so libcimgui_sdl3.so` to get around Termux's symlinks to libSDL3.so.0 vs the SDLActivity's libSDL3.so
 	-- 2.2) patchelf --set-rpath "\$ORIGIN" libcimgui_sdl3.so
 	-- and that will force it to look in the appDir for its dep libc++_shared.so
-	os.execute('mkdir -p '..libDir)
+	exec('mkdir -p '..libDir)
 	local function setuplib(projectName, libLoadName)
 		local libFileName = 'lib'..libLoadName..'.so'
-		assert(os.execute(('cp %q %q'):format(
+		exec(('cp %q %q'):format(
 			projectsDir..'/'..projectName..'/bin/Android/arm/'..libFileName,
 			libDir..'/')
-	))
+		)
 		require 'ffi.load'[libLoadName] = libDir..'/'..libFileName
 	end
 
@@ -123,22 +139,24 @@ extern FILE * stderr;
 	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
 	-- how come libcimgui_sdl3.so can find libc++_shared.so no problem, but libopenal.so can't?
 	-- TODO this can be packaged in your app....
-	assert(os.execute(('cp %q %q'):format(
+	exec(('cp %q %q'):format(
 		'libc++_shared.so',
 		libDir..'/')
-	))
+	)
 	-- TODO there's also a libc++_shared.so in /system/lib, we can symlink there too...
 
 	-- vulkan
-	os.execute('rm '..libDir..'/libvulkan.so')
-	assert(os.execute('ln -s /system/lib/libvulkan.so '..libDir..'/libvulkan.so'))
+	exec('rm '..libDir..'/libvulkan.so')
+	exec('ln -s /system/lib/libvulkan.so '..libDir..'/libvulkan.so')
 	require 'ffi.load'.vulkan = libDir..'/libvulkan.so'
 
-	--os.execute('cat '..appFilesDir..'/luajit-args')
+	--exec('cat '..appFilesDir..'/luajit-args')
 	--local f = io.open(appFilesDir..'/luajit-args','w')
 	--f:write(projectsDir..'/android-launch.lua\n')
 	--f:close()
 	--do return end
+
+
 
 	--now ... try to run something in SDL+OpenGL
 	local dir, run
