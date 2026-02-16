@@ -60,7 +60,7 @@ extern FILE * stderr;
 	end
 	--]]
 
-	print'BEGIN launch-android.lua'
+	print'BEGIN android-launch.lua'
 
 	-- setup LUA_PATH and LUA_CPATH here
 	package.path = table.concat({
@@ -73,6 +73,9 @@ extern FILE * stderr;
 		startDir..'/?.so',
 		startDir..'/?/init.so',
 	}, ';')
+
+	-- switch to pure-lua require so i can see errors from files that fail
+	--require 'ext.require'(_G)
 
 	ffi.cdef[[int setenv(const char*,const char*,int);]]
 	-- let subsequent invoked lua processes know where to find things
@@ -87,20 +90,10 @@ extern FILE * stderr;
 	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
 
 	local function exec(cmd)
-		print('>'..cmd)
-		print(os.execute(cmd))
+		if not os.execute(cmd) then
+			print('FAILED: '..cmd)
+		end
 	end
-
-
-
-	-- these are set upon app init:
-	print('PACKAGE_NAME', os.getenv'PACKAGE_NAME')
-	print('APP_FILES_DIR', os.getenv'APP_FILES_DIR')
-	print('APP_RES_DIR', os.getenv'APP_RES_DIR')
-	print('APP_CACHE_DIR', os.getenv'APP_CACHE_DIR')
-	exec'set'
-
-
 
 	-- setup for libs android
 	-- Android only lets me ffi.load if the .so is in appDir
@@ -116,6 +109,11 @@ extern FILE * stderr;
 			libDir..'/')
 		)
 		require 'ffi.load'[libLoadName] = libDir..'/'..libFileName
+	end
+	local function setupsymlink(libFileName)
+		local dst = libDir..'/'..libFileName
+		exec('rm '..dst)
+		exec('ln -s /system/lib/'..libFileName..' '..dst)
 	end
 
 	setuplib('audio', 'ogg')
@@ -139,15 +137,13 @@ extern FILE * stderr;
 	-- last is libc++_shared.so, which libcimgui_sdl3.so depends on.  idk if I should put that in any particular subdir, maybe just here?  or maybe I shoudl put it with libcimgui_sdl3.so so long as that's the only lib that uses it...
 	-- how come libcimgui_sdl3.so can find libc++_shared.so no problem, but libopenal.so can't?
 	-- TODO this can be packaged in your app....
-	exec(('cp %q %q'):format(
-		'libc++_shared.so',
-		libDir..'/')
-	)
-	-- TODO there's also a libc++_shared.so in /system/lib, we can symlink there too...
+	exec(('cp %q %q'):format('libc++_shared.so', libDir..'/'))
+	-- there's also a libc++_shared.so in /system/lib, we can symlink there too...
+	-- but this still complains...
+	--setupsymlink'libc++_shared.so'
 
 	-- vulkan
-	exec('rm '..libDir..'/libvulkan.so')
-	exec('ln -s /system/lib/libvulkan.so '..libDir..'/libvulkan.so')
+	setupsymlink'libvulkan.so'
 	require 'ffi.load'.vulkan = libDir..'/libvulkan.so'
 
 	--exec('cat '..appFilesDir..'/luajit-args')
@@ -156,19 +152,20 @@ extern FILE * stderr;
 	--f:close()
 	--do return end
 
-
+	require 'android-setup'	-- copy over files .. TODO also we can read appFilesDir from here, no need for env var anymore
 
 	--now ... try to run something in SDL+OpenGL
 	local dir, run
 	arg = {}
 	-- [[
+	--dir,run='android','test.lua'
 	--dir,run='sdl/tests','app.lua'
 	--dir,run='sdl/tests','minimal.lua'
 	--dir,run='sdl/tests','events.lua'
 	--dir,run='gl/tests','info.lua'							-- WORKS
 	--dir,run='gl/tests','test_es.lua'						-- WORKS
 	--dir,run,arg='gl/tests','test_geom.lua',{'maxTess=7'} 	-- WORKS.  auto detect maxTess would be nice tho...
-	--dir,run='gl/tests','test_tex.lua' 					-- WORKS
+	dir,run='gl/tests','test_tex.lua' 					-- WORKS
 	--dir,run='gl/tests','test_uniformblock.lua'			-- WORKS
 -- TODO imgui ui probably needs bigger to be able to touch anything
 	--dir,run='imgui/tests','demo.lua'						-- WORKS
@@ -232,5 +229,5 @@ end)
 -- need this or else we will lose output.
 io.stdout:flush()
 io.stderr:flush()
-print'DONE launch-android.lua'
+print'DONE android-launch.lua'
 io.stdout:flush()

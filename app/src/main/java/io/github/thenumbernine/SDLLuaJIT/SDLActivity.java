@@ -25,6 +25,27 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 		};
 	}
 
+	protected void copyFromAssetsToFilesIfItDoesntExist(String filename) {
+		try {
+			// using this ctor does that mean I can only write to getFilesDir() base folder files?  java is so weird.
+			File file = new File(getContext().getFilesDir(), filename);
+			if (file.exists()) return;
+
+			InputStream is = getContext().getAssets().open(filename);
+			FileOutputStream os = new FileOutputStream(file);
+			byte[] buf = new byte[16384];
+			int len = -1;
+			while ((len = is.read(buf)) > 0) {
+				os.write(buf, 0, len);
+			}
+			is.close();
+			os.flush();
+			os.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * This method is called by SDL before starting the native application thread.
 	 * It can be overridden to provide the arguments after the application name.
@@ -34,6 +55,13 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 	 */
 	protected String[] getArguments() {
 		String[] arguments = new String[0]; // args to pass it
+
+		// bootloading ...
+		// if files/luajit-args doesn't yet exist then write it with a default
+		copyFromAssetsToFilesIfItDoesntExist("luajit-args");		// what luajit should do
+		copyFromAssetsToFilesIfItDoesntExist("android-launch.lua");	// setup our env to capture stdout
+		copyFromAssetsToFilesIfItDoesntExist("android-setup.lua");	// copy the rest of the files over
+		// if files/android-launch.lua doesn't yet exist then write it with a default
 
 		try {
 			// get args from `/data/data/app/files/luajit-args`
@@ -63,6 +91,8 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+
+		// TODO no need to do this anymore, just use android JNI on startup and read from java directly
 		Context context = (Context)this;
 		try {
 			Os.setenv("APP_PACKAGE_NAME", context.getPackageName(), true);
