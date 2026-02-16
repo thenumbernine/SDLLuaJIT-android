@@ -1,0 +1,15 @@
+--------------------------------------------
+-- generated with dist/build-distinfo.rua --
+--------------------------------------------
+
+name = "stl"
+files = {
+	"README.md",
+	"distinfo",
+	"vector-lua.lua",
+	"vector.lua",
+}
+deps = {
+	"ext",
+	"ffi",
+}
