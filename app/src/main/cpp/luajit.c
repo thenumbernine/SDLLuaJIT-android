@@ -585,11 +585,18 @@ static int pmain(lua_State *L)
     return 0;
 }
 
+// Chris: trying to hand this off to LuaJIT ffi.C ...
+// or wait is this automatic?
+static JNIEnv * jniEnv = NULL;
+JNIEXPORT void JNICALL Java_io_github_thenumbernine_SDLLuaJIT_SDLActivity_nativeSetJNIEnv(JNIEnv * jniEnv_) { jniEnv = jniEnv_; }
+extern JNIEnv * SDLLuaJIT_GetJNIEnv() { return jniEnv; }
+
 JNIEXPORT int SDL_main(
     int argc,
     char** argv
 ) {
-    // make sure I am getting my arguments correctly
+    // Chris:
+	// make sure I am getting my arguments correctly
     {
         __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT");
         __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT argc %d", argc);

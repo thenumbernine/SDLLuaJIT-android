@@ -52,6 +52,12 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 			e.printStackTrace();
 		}
 
+		// I could modify org.libsdl.app.SDLActivity to have it also pass the JNIEnv into SDL_Main but ...
+		// instead I'll just do it here
+		// note, this is already done in SDL/src/core/android/SDL_android.c's Android_JNI_getEnv()
+		// but it's not extern, and luajit ffi isn't seeing it ...
+		nativeSetJNIEnv();
+
 		return arguments;
 	}
 
@@ -70,4 +76,8 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 
 		super.onCreate(savedInstanceState);
 	}
+
+	// maybe I can pass Java pointers back through JNI to LuaJIT ...
+	// there's already a "getContext()" in org.libsdl.app.SDLActivity ...
+	public static native void nativeSetJNIEnv();
 }
