@@ -591,6 +591,7 @@ static JNIEnv * jniEnv = NULL;
 JNIEXPORT void JNICALL Java_io_github_thenumbernine_SDLLuaJIT_SDLActivity_nativeSetJNIEnv(JNIEnv * jniEnv_) { jniEnv = jniEnv_; }
 extern JNIEnv * SDLLuaJIT_GetJNIEnv() { return jniEnv; }
 
+// last arg is for chdir() then thrown away
 JNIEXPORT int SDL_main(
     int argc,
     char** argv
@@ -598,7 +599,13 @@ JNIEXPORT int SDL_main(
     // Chris:
 	// make sure I am getting my arguments correctly
     {
-        __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT");
+		if (argc > 0) {
+			char const * wd = argv[argc - 1];
+			if (wd) chdir(wd);
+			--argc;
+		}
+
+		__android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT");
         __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT argc %d", argc);
         for (int i = 0; i < argc; ++i) {
             __android_log_print(ANDROID_LOG_INFO, "SDL", "LUAJIT argv[%d]: %s", i, argv[i] ? argv[i] : "(null)");

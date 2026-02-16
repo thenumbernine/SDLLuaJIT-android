@@ -25,13 +25,19 @@ xpcall(function()
 		assert(res==0, 'chdir '..tostring(s)..' failed')
 	end
 
-	-- in Termux I've got this set to $LUA_PROJECT_PATH env var,
-	-- but in JNI, no such variables, and barely even env var access to what is there.
-	local projectsDir = '/sdcard/Documents/Projects/lua'
-	local startDir = projectsDir
 	local appFilesDir = os.getenv'APP_FILES_DIR'
 	--local appFilesDir = '/data/data/io.github.thenumbernine.SDLLuaJIT/files'
 	local libDir = appFilesDir..'/lib'
+	-- in Termux I've got this set to $LUA_PROJECT_PATH env var,
+	-- but in JNI, no such variables, and barely even env var access to what is there.
+	--[[ running on sdcard
+	local projectDir = '/sdcard/Documents/Projects/lua'
+	local startDir = projectDir
+	--]]
+	-- [[ running on files/
+	local projectDir = appFilesDir
+	local startDir = appFilesDir
+	--]]
 
 	chdir(startDir)
 
@@ -65,13 +71,13 @@ extern FILE * stderr;
 	-- setup LUA_PATH and LUA_CPATH here
 	package.path = table.concat({
 		'./?.lua',
-		startDir..'/?.lua',
-		startDir..'/?/?.lua',
+		projectDir..'/?.lua',
+		projectDir..'/?/?.lua',
 	}, ';')
 	package.cpath = table.concat({
 		'./?.so',
-		startDir..'/?.so',
-		startDir..'/?/init.so',
+		projectDir..'/?.so',
+		projectDir..'/?/init.so',
 	}, ';')
 
 	-- switch to pure-lua require so i can see errors from files that fail
@@ -89,6 +95,15 @@ extern FILE * stderr;
 	-- armv7a has ffi.arch==arm
 	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
 
+
+	-- now we can copy over our initial assets
+	-- this has to be done before any further cp's take place
+	-- copy over files .. TODO also we can read appFilesDir from here, no need for env var anymore
+	-- TODO BUT IT NEEDS ITS FILES TO COPY THE FILES, SO ITS NOT USEFUL
+	-- I could make this and the java/ folder the bootstrap though ...
+	--require 'android-setup'
+
+
 	local function exec(cmd)
 		if not os.execute(cmd) then
 			print('FAILED: '..cmd)
@@ -105,7 +120,7 @@ extern FILE * stderr;
 	local function setuplib(projectName, libLoadName)
 		local libFileName = 'lib'..libLoadName..'.so'
 		exec(('cp %q %q'):format(
-			projectsDir..'/'..projectName..'/bin/Android/arm/'..libFileName,
+			projectDir..'/'..projectName..'/bin/Android/arm/'..libFileName,
 			libDir..'/')
 		)
 		require 'ffi.load'[libLoadName] = libDir..'/'..libFileName
@@ -148,11 +163,10 @@ extern FILE * stderr;
 
 	--exec('cat '..appFilesDir..'/luajit-args')
 	--local f = io.open(appFilesDir..'/luajit-args','w')
-	--f:write(projectsDir..'/android-launch.lua\n')
+	--f:write(projectDir..'/android-launch.lua\n')
 	--f:close()
 	--do return end
 
-	require 'android-setup'	-- copy over files .. TODO also we can read appFilesDir from here, no need for env var anymore
 
 	--now ... try to run something in SDL+OpenGL
 	local dir, run

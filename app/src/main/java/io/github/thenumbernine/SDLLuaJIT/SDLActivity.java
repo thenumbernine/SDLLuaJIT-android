@@ -1,6 +1,7 @@
 package io.github.thenumbernine.SDLLuaJIT;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.system.Os;
 
@@ -8,6 +9,9 @@ import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class SDLActivity extends org.libsdl.app.SDLActivity {
@@ -46,6 +50,33 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 		}
 	}
 
+	private static void copyAssets(AssetManager assets, String f, String appFilesDir) throws IOException {
+		File toFile = new File(appFilesDir + "/" + f);
+		String[] list = assets.list(f);
+		int n = list.length;
+		if (n == 0) {
+			if (toFile.exists()) return;	// don't overwrite
+
+			InputStream is = assets.open(f);
+			FileOutputStream os = new FileOutputStream(toFile);
+
+			byte[] buf = new byte[1024];
+			int res = -1;
+			while ((res = is.read(buf)) > 0) {
+				os.write(buf, 0, res);
+			}
+
+			is.close();
+			os.flush();
+			os.close();
+		} else {
+			toFile.mkdirs();
+			for (String subf : list) {
+				copyAssets(assets, f == "" ? subf : (f + "/" + subf), appFilesDir);
+			}
+		}
+	}
+
 	/**
 	 * This method is called by SDL before starting the native application thread.
 	 * It can be overridden to provide the arguments after the application name.
@@ -54,18 +85,28 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 	 * @return arguments for the native application.
 	 */
 	protected String[] getArguments() {
-		String[] arguments = new String[0]; // args to pass it
+		File filesDir = getContext().getFilesDir();
+		String[] arguments = new String[]{	// args to pass it
+			filesDir.getAbsolutePath()		// pass the cwd last and within SDL_main pick it out so we know where to chdir() into at the start
+		};
 
 		// bootloading ...
 		// if files/luajit-args doesn't yet exist then write it with a default
-		copyFromAssetsToFilesIfItDoesntExist("luajit-args");		// what luajit should do
-		copyFromAssetsToFilesIfItDoesntExist("android-launch.lua");	// setup our env to capture stdout
-		copyFromAssetsToFilesIfItDoesntExist("android-setup.lua");	// copy the rest of the files over
+		//copyFromAssetsToFilesIfItDoesntExist("luajit-args");		// what luajit should do
+		//copyFromAssetsToFilesIfItDoesntExist("android-launch.lua");	// setup our env to capture stdout
+		//copyFromAssetsToFilesIfItDoesntExist("android-setup.lua");	// copy the rest of the files over
 		// if files/android-launch.lua doesn't yet exist then write it with a default
+		// but to bootload into the luajit-java stuff, I have to copy so much ...
+		// I'll just copy everything now
+		try {
+			copyAssets(getContext().getAssets(), "", filesDir.getAbsolutePath());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		try {
 			// get args from `/data/data/app/files/luajit-args`
-			File file = new File(getContext().getFilesDir(), "luajit-args");
+			File file = new File(filesDir, "luajit-args");
 			// Use try-with-resources to ensure the BufferedReader is closed automatically
 			BufferedReader br = new BufferedReader(new FileReader(file));
 			ArrayList<String> args = new ArrayList<String>();
@@ -74,6 +115,7 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 			while ((line = br.readLine()) != null) {
 				args.add(line);
 			}
+			args.add(arguments[0]); // add cwd last
 			arguments = args.toArray(new String[0]);
 		} catch (IOException e) {
 			// Handle potential IO exceptions (e.g., File not found, permission issues)
