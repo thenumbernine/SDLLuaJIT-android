@@ -29,34 +29,17 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 		};
 	}
 
-	protected void copyFromAssetsToFilesIfItDoesntExist(String filename) {
-		try {
-			// using this ctor does that mean I can only write to getFilesDir() base folder files?  java is so weird.
-			File file = new File(getContext().getFilesDir(), filename);
-			if (file.exists()) return;
-
-			InputStream is = getContext().getAssets().open(filename);
-			FileOutputStream os = new FileOutputStream(file);
-			byte[] buf = new byte[16384];
-			int len = -1;
-			while ((len = is.read(buf)) > 0) {
-				os.write(buf, 0, len);
-			}
-			is.close();
-			os.flush();
-			os.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
+	/*
+	I really wanted to do all this in LuaJIT
+	but that would mean at least copying over the lua-java repo
+	and there seems to be no simple mechanism for just copying all files from assets into /data/data/$packagename/files/
+	so here we are.
+	*/
 	private static void copyAssets(AssetManager assets, String f, String appFilesDir) throws IOException {
 		File toFile = new File(appFilesDir + "/" + f);
 		String[] list = assets.list(f);
 		int n = list.length;
 		if (n == 0) {
-			if (toFile.exists()) return;	// don't overwrite
-
 			InputStream is = assets.open(f);
 			FileOutputStream os = new FileOutputStream(toFile);
 
@@ -90,16 +73,12 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 			filesDir.getAbsolutePath()		// pass the cwd last and within SDL_main pick it out so we know where to chdir() into at the start
 		};
 
-		// bootloading ...
-		// if files/luajit-args doesn't yet exist then write it with a default
-		//copyFromAssetsToFilesIfItDoesntExist("luajit-args");		// what luajit should do
-		//copyFromAssetsToFilesIfItDoesntExist("android-launch.lua");	// setup our env to capture stdout
-		//copyFromAssetsToFilesIfItDoesntExist("android-setup.lua");	// copy the rest of the files over
-		// if files/android-launch.lua doesn't yet exist then write it with a default
-		// but to bootload into the luajit-java stuff, I have to copy so much ...
-		// I'll just copy everything now
 		try {
-			copyAssets(getContext().getAssets(), "", filesDir.getAbsolutePath());
+			File lockFile = new File(filesDir, "dontcopyfromassets");
+			if (!lockFile.exists()) {
+				copyAssets(getContext().getAssets(), "", filesDir.getAbsolutePath());
+				lockFile.createNewFile();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

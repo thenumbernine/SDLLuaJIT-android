@@ -3,7 +3,7 @@ local function showenvvar(var)
 	print(var, os.getenv(var))
 end
 showenvvar'APP_PACKAGE_NAME'
--- 
+--
 showenvvar'APP_FILES_DIR' -- /data/user/0/$APP_PACKAGE_NAME
 showenvvar'APP_CACHE_DIR'
 showenvvar'APP_DATA_DIR'
@@ -68,9 +68,10 @@ local appFilesDir = filesDirObj:getMethod{
 }(filesDirObj)
 print('appFilesDir', appFilesDir)
 
-local haveAssetsBeenCopiedFilename = appFilesDir..'/haveassetsbeencopied'
-local haveAssetsBeenCopied = io.open(haveAssetsBeenCopiedFilename, 'r')
-if not haveAssetsBeenCopied then
+--[===[ don't need to do this snice I *must* do it on apk startup
+local dontCopyFromAssetsFilename = appFilesDir..'/dontcopyfromassets'
+local dontCopyFromAssetsExists = io.open(dontCopyFromAssetsFilename, 'r')
+if not dontCopyFromAssetsExists then
 	local assets = context:getMethod{
 		name = 'getAssets',
 		sig = {'android/content/res/AssetManager'},
@@ -86,7 +87,7 @@ if not haveAssetsBeenCopied then
 		name = 'open',
 		sig = {'java/io/InputStream', 'java/lang/String'},
 	}
-	
+
 	local File = jniEnv:findClass'java/io/File'
 	local File_init = File:getMethod{name='<init>', sig={'void', 'java/lang/String'}}
 
@@ -110,7 +111,7 @@ if not haveAssetsBeenCopied then
 print(f)--, 'is', is, is_close)
 			-- no files?  its either not a dir, or its an empty dir
 			-- no way to tell in Android, fucking retarded
-			
+
 			local is = assets_open(assets, f)
 			-- do you need to create a new file before an output stream?
 			--toFile:getMethod{name='createNewFile', sig={'java/io/File'}}
@@ -122,18 +123,18 @@ print(f)--, 'is', is, is_close)
 			local buf = jniEnv:newArray('byte', 16384)
 			while true do
 				local res = is:getMethod{name='read', sig={'int', 'byte[]'}}(is, buf)
---DEBUG:print('copied', res)				
+--DEBUG:print('copied', res)
 				if res <= 0 then break end
 				os:getMethod{name='write', sig={'void', 'byte[]', 'int', 'int'}}(os, buf, 0, res)
 			end
 
---DEBUG:print'is.close()'			
+--DEBUG:print'is.close()'
 			InputStream_close(is)
---DEBUG:print'os.flush()'			
+--DEBUG:print'os.flush()'
 			FileOutputStream_flush(os)
---DEBUG:print'os.close()'			
+--DEBUG:print'os.close()'
 			FileOutputStream_close(os)
---DEBUG:print'file done'			
+--DEBUG:print'file done'
 		else
 			-- is dir so we can mkdirs
 			toFile:getMethod{name='mkdirs', sig={'boolean'}}(toFile)
@@ -151,5 +152,6 @@ print(f)--, 'is', is, is_close)
 	end
 	copyAssets''
 
-	--assert(io.open(haveAssetsBeenCopiedFilename, 'w')):close()
+	--assert(io.open(dontCopyFromAssetsFilename, 'w')):close()
 end
+--]===]
