@@ -23,7 +23,9 @@ require 'java.ffi.jni'	-- cdef for JNIEnv
 local ffi = require 'ffi'
 ffi.cdef[[JNIEnv * SDLLuaJIT_GetJNIEnv();]]
 local main = ffi.load'main'
-local jniEnv = require 'java.jnienv'(main.SDLLuaJIT_GetJNIEnv())
+print('main', main)
+local J = require 'java.jnienv'(main.SDLLuaJIT_GetJNIEnv())
+print('J', J)
 
 -- alright at this point ...
 -- this is just as well 'main()'
@@ -33,125 +35,109 @@ local jniEnv = require 'java.jnienv'(main.SDLLuaJIT_GetJNIEnv())
 
 -- now why did I even bother with this?
 -- because I wanted to access the assets/ folder
-local org_libsdl_app_SDLActivity = jniEnv:findClass'org/libsdl/app/SDLActivity'
-local version = org_libsdl_app_SDLActivity:getMethod{
-	name = 'nativeGetVersion',
-	sig = {'java/lang/String'},
-	static = true,
-}(org_libsdl_app_SDLActivity)
-print('verison', version)
+local SDLActivity = J.org.libsdl.app.SDLActivity
+print('SDLActivity', SDLActivity)
+print('verison', SDLActivity:nativeGetVersion())
 
--- alright now
--- try to get our context
-local context = org_libsdl_app_SDLActivity:getMethod{
-	name = 'getContext',
-	sig = {'android/content/Context'},
-	static = true,
-}(org_libsdl_app_SDLActivity)
+-- TODO better way to get our running app's activity?
+local context = SDLActivity:getContext()
 print('context', context)
 
--- I don't need os.getenv'APP_PACKAGE_NAME' now
-local packageName = context:getMethod{
-	name = 'getPackageName',
-	sig = {'java/lang/String'},
-}(context)
-print('packageName', packageName)
+local M = {}
+M.packageName = tostring(context:getPackageName())
+print('packageName', M.packageName)
 
--- I don't need os.getenv'APP_FILES_DIR' now
-local filesDirObj = context:getMethod{
-	name = 'getFilesDir',
-	sig = {'java/io/File'},
-}(context)
-local appFilesDir = filesDirObj:getMethod{
-	name = 'getAbsolutePath',
-	sig = {'java/lang/String'},
-}(filesDirObj)
-print('appFilesDir', appFilesDir)
+M.appFilesDir = context:getFilesDir():getAbsolutePath()
+print('appFilesDir', M.appFilesDir)
+
+M.appResDir = context:getPackageResourcePath()
+print('appResDir', M.appResDir)
+
+M.appCacheDir = context:getCacheDir():getAbsolutePath()
+print('appCacheDir', M.appCacheDir)
+
+M.appDataDir = context:getDataDir():getAbsolutePath()
+print('appDataDir', M.appDataDir)
+
+M.appExtCacheDir = context:getExternalCacheDir():getAbsolutePath()
+print('appExtCacheDir', M.appExtCacheDir)
+
+M.appPackageCodeDir = context:getPackageCodePath()
+print('appPackageCodeDir', M.appPackageCodeDir)
 
 --[===[ don't need to do this snice I *must* do it on apk startup
-local dontCopyFromAssetsFilename = appFilesDir..'/dontcopyfromassets'
-local dontCopyFromAssetsExists = io.open(dontCopyFromAssetsFilename, 'r')
-if not dontCopyFromAssetsExists then
-	local assets = context:getMethod{
-		name = 'getAssets',
-		sig = {'android/content/res/AssetManager'},
-	}(context)
-	print('assets', assets)
+local function copyAssetsToFiles()
+	local dontCopyFromAssetsFilename = appFilesDir..'/dontcopyfromassets'
+	local dontCopyFromAssetsExists = io.open(dontCopyFromAssetsFilename, 'r')
+	if not dontCopyFromAssetsExists then
+		local assets = context:getAssets()
+		print('assets', assets)
 
-	local assets_list = assets:getMethod{
-		name = 'list',
-		sig = {'java/lang/String[]', 'java/lang/String'},
-	}
-	-- so tempting to cache these...
-	local assets_open = assets:getMethod{
-		name = 'open',
-		sig = {'java/io/InputStream', 'java/lang/String'},
-	}
+		local File = J.java.io.File
+		-- TODO lookup ctors and use Object:_new
+		local File_init = File:_method{name='<init>', sig={'void', 'java/lang/String'}}
 
-	local File = jniEnv:findClass'java/io/File'
-	local File_init = File:getMethod{name='<init>', sig={'void', 'java/lang/String'}}
-
-	--local InputStream = jniEnv:findClass'java/io/InputStream'
-	--local InputStream_transferTo = InputStream:getMethod{name='transferTo', sig={'long', 'java/io/OutputStream'}}
-
-	local InputStream = jniEnv:findClass'java/io/InputStream'
-	local InputStream_close = InputStream:getMethod{name='close', sig={}}
-
-	local FileOutputStream = jniEnv:findClass'java/io/FileOutputStream'
-	local FileOutputStream_init = FileOutputStream:getMethod{name='<init>', sig={'void', 'java/io/File'}}
-	local FileOutputStream_flush = FileOutputStream:getMethod{name='flush', sig={}}
-	local FileOutputStream_close = FileOutputStream:getMethod{name='close', sig={}}
-
-	local function copyAssets(f)
-		local toPath = appFilesDir..'/'..f
-		local toFile = File_init:newObject(File, toPath)
-		local list = assets_list(assets, f)	-- root is ''
-		local n = #list
-		if n == 0 then
+		local InputStream = J.java.io.InputStream
+		local FileOutputStream = J.java.io.FileOutputStream
+		-- TODO lookup ctors and use Object:_new
+		local FileOutputStream_init = FileOutputStream:_method{name='<init>', sig={'void', 'java/io/File'}}
+		
+		local function copyAssets(f)
+			local toPath = appFilesDir..'/'..f
+			local toFile = File_init:_newObject(File, toPath)
+			local list = assets:list(f)	-- root is ''
+			local n = #list
+			if n == 0 then
 print(f)--, 'is', is, is_close)
-			-- no files?  its either not a dir, or its an empty dir
-			-- no way to tell in Android, fucking retarded
+				-- no files?  its either not a dir, or its an empty dir
+				-- no way to tell in Android, fucking retarded
 
-			local is = assets_open(assets, f)
-			-- do you need to create a new file before an output stream?
-			--toFile:getMethod{name='createNewFile', sig={'java/io/File'}}
+				local is = asserts:open(f)
+				-- do you need to create a new file before an output stream?
+				--toFile:createNewFile()
 --DEBUG:print'os='
-			local os = FileOutputStream_init:newObject(FileOutputStream, toFile)
-			-- java.io.InputStream transferTo ... can JNI get that from the child class as well?
+				local os = FileOutputStream_init:_newObject(FileOutputStream, toFile)
+				-- java.io.InputStream transferTo ... can JNI get that from the child class as well?
 --DEBUG:print'is.copyTo(os)'
-			--InputStream_transferTo(is, os)
-			local buf = jniEnv:newArray('byte', 16384)
-			while true do
-				local res = is:getMethod{name='read', sig={'int', 'byte[]'}}(is, buf)
+				--io:transferTo(os)
+				local buf = J:_newArray('byte', 16384)
+				while true do
+					-- TODO here's a case of symbol overload resolution
+					--local res = is:read(buf)
+					local res = is:getMethod{name='read', sig={'int', 'byte[]'}}(is, buf)
 --DEBUG:print('copied', res)
-				if res <= 0 then break end
-				os:getMethod{name='write', sig={'void', 'byte[]', 'int', 'int'}}(os, buf, 0, res)
-			end
+					if res <= 0 then break end
+					--os:write(os, buf, 0, res)
+					os:getMethod{name='write', sig={'void', 'byte[]', 'int', 'int'}}(os, buf, 0, res)
+				end
 
 --DEBUG:print'is.close()'
-			InputStream_close(is)
+				InputStream_close(is)
 --DEBUG:print'os.flush()'
-			FileOutputStream_flush(os)
+				FileOutputStream_flush(os)
 --DEBUG:print'os.close()'
-			FileOutputStream_close(os)
+				FileOutputStream_close(os)
 --DEBUG:print'file done'
-		else
-			-- is dir so we can mkdirs
-			toFile:getMethod{name='mkdirs', sig={'boolean'}}(toFile)
+			else
+				-- is dir so we can mkdirs
+				toFile:mkdirs()
 
-			for i=0,n-1 do
-				-- how to determine subfolder?
-				-- official way?
-				-- try to query it with list()
-				local subf = list:getElem(i)
-				local path = f == '' and subf or f..'/'..subf
---DEBUG:print(path)
-				copyAssets(path)
+				for i=0,n-1 do
+					-- how to determine subfolder?
+					-- official way?
+					-- try to query it with list()
+					local subf = list[i]
+					local path = f == '' and subf or f..'/'..subf
+	--DEBUG:print(path)
+					copyAssets(path)
+				end
 			end
 		end
-	end
-	copyAssets''
+		copyAssets''
 
-	--assert(io.open(dontCopyFromAssetsFilename, 'w')):close()
+		--assert(io.open(dontCopyFromAssetsFilename, 'w')):close()
+	end
 end
 --]===]
+
+return M

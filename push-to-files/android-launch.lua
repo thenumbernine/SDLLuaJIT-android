@@ -36,7 +36,7 @@ xpcall(function()
 	--]]
 	-- [[ running on files/
 	local projectDir = appFilesDir
-	local startDir = appFilesDir
+	local startDir = projectDir
 	--]]
 
 	chdir(startDir)
@@ -94,15 +94,6 @@ extern FILE * stderr;
 	ffi.os = 'Android'
 	-- armv7a has ffi.arch==arm
 	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
-
-
-	-- now we can copy over our initial assets
-	-- this has to be done before any further cp's take place
-	-- copy over files .. TODO also we can read appFilesDir from here, no need for env var anymore
-	-- TODO BUT IT NEEDS ITS FILES TO COPY THE FILES, SO ITS NOT USEFUL
-	-- I could make this and the java/ folder the bootstrap though ...
-	--require 'android-setup'
-
 
 	local function exec(cmd)
 		if not os.execute(cmd) then
@@ -167,12 +158,16 @@ extern FILE * stderr;
 	--f:close()
 	--do return end
 
+	-- this gets us vars like appFilesDir
+	-- but I already need files set up to require java.ffi.jni to get it
+	-- so *shrug* it is a triviality
+	-- but it would be nice to bootload just that directory...
+	local androidEnv = require 'android-setup'
 
 	--now ... try to run something in SDL+OpenGL
 	local dir, run
 	arg = {}
 	-- [[
-	--dir,run='android','test.lua'
 	--dir,run='sdl/tests','app.lua'
 	--dir,run='sdl/tests','minimal.lua'
 	--dir,run='sdl/tests','events.lua'

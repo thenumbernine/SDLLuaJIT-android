@@ -194,3 +194,4 @@ enum { RAND_MAX = 0x7fffffff };
 enum { MB_CUR_MAX = 4 };
 /* + END <stdlib.h> /data/data/com.termux/files/usr/bin/../../usr/include/stdlib.h */
 ]]
+return ffi.C

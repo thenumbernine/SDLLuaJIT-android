@@ -23,9 +23,9 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 
 	protected String[] getLibraries() {
 		return new String[]{
-				"SDL3",
-				"luajit",
-				"main"
+			"SDL3",
+			"luajit",
+			"main"
 		};
 	}
 
@@ -114,6 +114,8 @@ public class SDLActivity extends org.libsdl.app.SDLActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 
 		// TODO no need to do this anymore, just use android JNI on startup and read from java directly
+		// but that will still require bootload of the lua-java folder, and class path setup to use it
+		// so for now I'll still do this.
 		Context context = (Context)this;
 		try {
 			Os.setenv("APP_PACKAGE_NAME", context.getPackageName(), true);
