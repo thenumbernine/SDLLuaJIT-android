@@ -30,10 +30,19 @@ I've been setting the `rpath` to `$ORIGIN/../files` which happens to resolve to 
 
 I've generated LuaJIT bindings to go with most POSIX functions of Termux's android, it's in my `lua-ffi-bindings` project in the `Android/c` folder.
 
+# under the hood
+
+It launches into LuaJIT just fine.
+
+From there, LuaJIT can access any C function just fine.
+
+I have a simple function set up to save and relay the `JNIEnv`.
+
+Next, using this library, I will use LuaJIT to access JNI to do JNI stuff.
+
 # TODO
 
 - connect the luajit build scripts to the CMakeLists.txt to have it build luajit through Android Studio instead of as a separate shell script.
-- right now it just packages the armv7a luajit.  idk even what architecture SDL is on.  TODO would be public universal one for all archs.
 - automated script in my lua-dist project for auto-generating the Android build files for some particular appname/classname, and auto-package the luajit contents, to auto-build Android apps:
 	- 1) sed all the io.github.thenumbernine.SDLActivity with whatever apk classname for the specific repo
 	- 3) setup luajit-args to the init/boostrap file
