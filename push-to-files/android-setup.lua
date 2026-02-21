@@ -16,15 +16,19 @@ showenvvar'APP_EXTERNAL_CACHE_DIR'
 
 -- nothing there
 --exec('ls -al '..os.getenv'APP_RES_DIR')
+
+TODO now that LuaJIT has Java access, I don't need to set the env vars anymore!
 --]]
 
--- try to access JNI functions ...
+-- LuaJIT access to JNI ...
 require 'java.ffi.jni'	-- cdef for JNIEnv
+
 local ffi = require 'ffi'
 ffi.cdef[[JNIEnv * SDLLuaJIT_GetJNIEnv();]]
 local main = ffi.load'main'
 print('main', main)
-local J = require 'java.jnienv'(main.SDLLuaJIT_GetJNIEnv())
+
+local J = require 'java.jnienv'{ptr=main.SDLLuaJIT_GetJNIEnv()}
 print('J', J)
 
 -- alright at this point ...
@@ -65,8 +69,8 @@ print('appExtCacheDir', M.appExtCacheDir)
 M.appPackageCodeDir = context:getPackageCodePath()
 print('appPackageCodeDir', M.appPackageCodeDir)
 
---[===[ don't need to do this snice I *must* do it on apk startup
-local function copyAssetsToFiles()
+-- [===[ don't need to do this snice I *must* do it on apk startup
+function M.copyAssetsToFiles()
 	local dontCopyFromAssetsFilename = appFilesDir..'/dontcopyfromassets'
 	local dontCopyFromAssetsExists = io.open(dontCopyFromAssetsFilename, 'r')
 	if not dontCopyFromAssetsExists then
@@ -74,17 +78,11 @@ local function copyAssetsToFiles()
 		print('assets', assets)
 
 		local File = J.java.io.File
-		-- TODO lookup ctors and use Object:_new
-		local File_init = File:_method{name='<init>', sig={'void', 'java/lang/String'}}
-
-		local InputStream = J.java.io.InputStream
 		local FileOutputStream = J.java.io.FileOutputStream
-		-- TODO lookup ctors and use Object:_new
-		local FileOutputStream_init = FileOutputStream:_method{name='<init>', sig={'void', 'java/io/File'}}
 		
 		local function copyAssets(f)
 			local toPath = appFilesDir..'/'..f
-			local toFile = File_init:_newObject(File, toPath)
+			local toFile = File(toPath)
 			local list = assets:list(f)	-- root is ''
 			local n = #list
 			if n == 0 then
@@ -93,31 +91,18 @@ print(f)--, 'is', is, is_close)
 				-- no way to tell in Android, fucking retarded
 
 				local is = asserts:open(f)
-				-- do you need to create a new file before an output stream?
-				--toFile:createNewFile()
---DEBUG:print'os='
-				local os = FileOutputStream_init:_newObject(FileOutputStream, toFile)
-				-- java.io.InputStream transferTo ... can JNI get that from the child class as well?
---DEBUG:print'is.copyTo(os)'
-				--io:transferTo(os)
+				local os = FileOutputStream(toFile)
+				-- is:transferTo(os) ... not available in my version?
 				local buf = J:_newArray('byte', 16384)
 				while true do
-					-- TODO here's a case of symbol overload resolution
-					--local res = is:read(buf)
-					local res = is:getMethod{name='read', sig={'int', 'byte[]'}}(is, buf)
---DEBUG:print('copied', res)
+					local res = is:read(buf)
 					if res <= 0 then break end
-					--os:write(os, buf, 0, res)
-					os:getMethod{name='write', sig={'void', 'byte[]', 'int', 'int'}}(os, buf, 0, res)
+					os:write(buf, 0, res)
 				end
 
---DEBUG:print'is.close()'
-				InputStream_close(is)
---DEBUG:print'os.flush()'
-				FileOutputStream_flush(os)
---DEBUG:print'os.close()'
-				FileOutputStream_close(os)
---DEBUG:print'file done'
+				is:close()
+				os:flush()
+				os:close()
 			else
 				-- is dir so we can mkdirs
 				toFile:mkdirs()
@@ -128,14 +113,15 @@ print(f)--, 'is', is, is_close)
 					-- try to query it with list()
 					local subf = list[i]
 					local path = f == '' and subf or f..'/'..subf
-	--DEBUG:print(path)
+--DEBUG:print(path)
 					copyAssets(path)
 				end
 			end
 		end
 		copyAssets''
 
-		--assert(io.open(dontCopyFromAssetsFilename, 'w')):close()
+		-- write that we did copy the files
+		assert(io.open(dontCopyFromAssetsFilename, 'w')):close()
 	end
 end
 --]===]
