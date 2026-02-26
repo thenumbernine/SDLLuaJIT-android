@@ -47,3 +47,8 @@ cp lua.hpp $DESTINCDIR
 cp luajit.h $DESTINCDIR
 cp lualib.h $DESTINCDIR
 cp lj_arch.h $DESTINCDIR
+
+# copy jit/ folder ... TODO this should go in the per-arch assets ...
+JITDIR=../../jit/$ANDROID_ABI/
+mkdir -p $JITDIR
+cp jit/*.lua $JITDIR
