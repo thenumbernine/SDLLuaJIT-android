@@ -587,9 +587,31 @@ static int pmain(lua_State *L)
 
 // Chris: trying to hand this off to LuaJIT ffi.C ...
 // or wait is this automatic?
-static JNIEnv * jniEnv = NULL;
+JNIEnv * jniEnv = NULL;
 JNIEXPORT void JNICALL Java_io_github_thenumbernine_SDLLuaJIT_SDLActivity_nativeSetJNIEnv(JNIEnv * jniEnv_) { jniEnv = jniEnv_; }
-extern JNIEnv * SDLLuaJIT_GetJNIEnv() { return jniEnv; }
+
+// Chris: for runtime class generation
+JNIEXPORT jobject JNICALL
+Java_io_github_thenumbernine_SDLLuaJIT_SDLActivity_nativeCallback(
+	JNIEnv * jniEnv_,
+	jclass this_,
+	jlong jfuncptr,
+	jobject jarg
+) {
+//printf("native callback fptr %p arg %p\n", (void*)jfuncptr, jarg);
+	void* vfptr = (void*)jfuncptr;
+	void* results = NULL;
+	if (!vfptr) {
+		fprintf(stderr, "!!! DANGER !!! NativeCallback called with null function pointer !!!\n");
+	} else {
+		void *(*fptr)(void*) = (void*(*)(void*))vfptr;
+		results = fptr(jarg);
+	}
+//printf("native callback result %p\n", results);
+	return results;
+}
+
+
 
 // last arg is for chdir() then thrown away
 JNIEXPORT int SDL_main(

@@ -60,6 +60,7 @@ dependencies {
 	implementation libs.appcompat
 	implementation libs.material
 	implementation libs.constraintlayout
+	implementation fileTree(dir:'libs', include:['*.jar'])
 	testImplementation libs.junit
 	androidTestImplementation libs.ext.junit
 	androidTestImplementation libs.espresso.core
