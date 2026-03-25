@@ -46,25 +46,24 @@ xpcall(function()
 struct FILE;
 typedef struct FILE FILE;
 FILE * freopen(const char * filename, const char * modes, FILE * stream);
+int dup2(int old, int new);
+int fileno(FILE *);
+int setvbuf(FILE *, char *, int, size_t);
 extern FILE * stdin;
 extern FILE * stdout;
 extern FILE * stderr;
 ]]
 	local newstdoutfn = 'out.txt'	-- relative to cwd
 	ffi.C.freopen(newstdoutfn, 'w+', ffi.C.stdout)
-	ffi.C.freopen(newstdoutfn, 'w+', ffi.C.stderr)
-	io.stdout:flush()
-	io.stderr:flush()
-	io.output(io.stdout)	-- I thought doing this would help io.flush() work right but meh
-	-- if we error before this point then we won't see it anyways
-
-	-- [[ old print doesn't flush new stdout ?
-	local oldprint = print
-	print = function(...)
-		oldprint(...)
-		io.flush()
+	if -1 == ffi.C.dup2(ffi.C.fileno(ffi.C.stdout), ffi.C.fileno(ffi.C.stderr)) then
+		error'dup2 stderr failed'
 	end
-	--]]
+	do
+		local _IONBF = 2
+		ffi.C.setvbuf(ffi.C.stdout, nil, _IONBF, 0)
+		ffi.C.setvbuf(ffi.C.stderr, nil, _IONBF, 0)
+	end
+	-- if we error before this point then we won't see it anyways
 
 	print'BEGIN android-launch.lua'
 
@@ -96,7 +95,7 @@ extern FILE * stderr;
 	assert(ffi.os == 'Linux')
 	ffi.os = 'Android'
 	-- armv7a has ffi.arch==arm
-	print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
+	--print('os', ffi.os, 'arch', ffi.arch, 'jit', jit, 'sizeof(intptr_t)', ffi.sizeof'intptr_t')
 
 	local function exec(cmd)
 		if not os.execute(cmd) then
@@ -169,7 +168,7 @@ extern FILE * stderr;
 	-- but it would be nice to bootload just that directory...
 	-- now I'm doing this on the UI thread...
 	--local androidEnv = require 'android-setup'
---do return end
+	--do return end
 
 	--now ... try to run something in SDL+OpenGL
 	local dir, run
@@ -181,7 +180,7 @@ extern FILE * stderr;
 	--dir,run='gl/tests','info.lua'							-- WORKS
 	--dir,run='gl/tests','test_es.lua'						-- WORKS
 	--dir,run,arg='gl/tests','test_geom.lua',{'maxTess=7'} 	-- WORKS.  auto detect maxTess would be nice tho...
-	--dir,run='gl/tests','test_tex.lua' 					-- WORKS
+	dir,run='gl/tests','test_tex.lua' 					-- WORKS
 	--dir,run='gl/tests','test_uniformblock.lua'			-- WORKS
 -- TODO imgui ui probably needs bigger to be able to touch anything
 	--dir,run='imgui/tests','demo.lua'						-- WORKS
