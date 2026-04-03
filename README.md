@@ -1,6 +1,18 @@
 [![Donate via Stripe](https://img.shields.io/badge/Donate-Stripe-green.svg)](https://buy.stripe.com/00gbJZ0OdcNs9zi288)<br>
 [![BuyMeACoffee](https://img.shields.io/badge/BuyMeA-Coffee-tan.svg)](https://buymeacoffee.com/thenumbernine)<br>
 
+# Deprecated
+
+Please use [SDL-in-LuaJIT-for-android](https://github.com/thenumbernine/SDL-in-LuaJIT-android) instead, unless all you want is a very focused app solely for running SDL LuaJIT on Android.
+
+I made this initially to directly connect the SDL-android project to LuaJIT for running SDL-driven scripts in LuaJIT.
+
+It does not do much more than this.  Namely, it is a bit painful to access the UI of Android.
+
+However since then I developed [lua-java](https://github.com/thenumbernine) and connected it to a purely [LuaJIT android](https://github.com/thenumbernine/LuaJIT-android) project.  Now you can script the Android and its Java API but all with just LuaJIT.  No compiler, no stupid bloated Google tools.
+
+From there, I built off the LuaJIT-android project a SDL-specific variant, which is [SDL-in-LuaJIT-for-android](https://github.com/thenumbernine/SDL-in-LuaJIT-android).  This one has the flexibility of using LuaJIT to build and run the whole of the UI and of the Java side of things, and also uses LuaJIT for the SDL Activity launcher, on a separate thread.
+
 # SDL+LuaJIT Launcher for Android
 
 This is an Android app with SDL + LuaJIT packaged.
